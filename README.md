@@ -1,4 +1,6 @@
-# Research code notebook (working name)
+# Benchjot
+
+Live: https://benchjot.vercel.app
 
 The product name is set in one place: `src/config/app.ts` (`APP_NAME`).
 
