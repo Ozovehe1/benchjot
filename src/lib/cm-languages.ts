@@ -27,12 +27,15 @@ const GRAMMARS: Record<LanguageId, () => Promise<Extension>> = {
   text: async () => [],
 };
 
+// These grammars already complete their own keywords; adding ours would list each twice.
+const GRAMMAR_COMPLETES = new Set<string>(["python", "javascript", "typescript", "sql"]);
+
 /** Indent, comment token and completion for a language (synchronous; the grammar loads separately). */
 export function languageSettings(id: string): Extension {
   const cfg = languageConfig(id);
   const data: Record<string, unknown> = {};
   if (cfg.comment) data.commentTokens = { line: cfg.comment };
-  if (cfg.keywords.length) data.autocomplete = completeFromList(cfg.keywords.map((label) => ({ label, type: "keyword" })));
+  if (cfg.keywords.length && !GRAMMAR_COMPLETES.has(cfg.id)) data.autocomplete = completeFromList(cfg.keywords.map((label) => ({ label, type: "keyword" })));
   // Highest precedence so these win over defaults and the grammar's own data.
   return Prec.highest([
     indentUnit.of(cfg.indent),

@@ -213,8 +213,10 @@ def desktop(browser, errors):
     step("moved unfiled and back via the Project select; project renamed")
 
     # Language behaviour: indent unit, comment toggle, completion
+    expect(d.get_by_label("Language of code 1")).to_be_visible(timeout=10000)
+
     def new_block(lang):
-        n = d.locator(".cm-content").count()
+        n = d.locator("select[aria-label^='Language of code']").count()
         d.get_by_role("button", name="Add code").click()
         expect(d.locator(".cm-content")).to_have_count(n + 1, timeout=10000)
         d.get_by_label(f"Language of code {n + 1}").select_option(lang)
@@ -235,7 +237,8 @@ def desktop(browser, errors):
     assert editor_text(d, i).split("\n")[1] == "\t// x", repr(editor_text(d, i))
     i = new_block("sql")
     d.keyboard.type("sel")
-    expect(d.locator(".cm-tooltip-autocomplete")).to_be_visible(timeout=5000)
+    expect(d.locator(".cm-tooltip-autocomplete").get_by_text("select", exact=True)).to_have_count(1, timeout=5000)
+    d.wait_for_timeout(300)  # CodeMirror ignores Enter for ~75 ms after the list opens
     d.keyboard.press("Enter")
     d.keyboard.type(" 1")
     d.keyboard.press("Control+/")
