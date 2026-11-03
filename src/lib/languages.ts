@@ -1,4 +1,4 @@
-// Single source of truth for the code languages Trialbook understands.
+// Single source of truth for the code languages the app understands.
 // Editor modes live in cm-languages.ts and are keyed by the same ids.
 
 export const LANGUAGES = [
