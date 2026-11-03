@@ -1,17 +1,11 @@
-// Turns what the user typed into a safe Postgres tsquery string with prefix
-// matching ("lr sched" -> "lr:* & sched:*"). Anything that is not a letter or
-// digit is treated as a separator, so tsquery syntax can never be injected.
+// Turns what the user typed into search terms for the search_entries RPC.
+// Terms are whitespace-separated and matched literally (case-insensitive
+// substring), so "torch.cos" finds exactly that.
 
 const MAX_TERMS = 8;
 const MAX_TERM_LENGTH = 64;
 
 export function searchTerms(input: string): string[] {
-  const terms = input.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  const terms = input.toLowerCase().split(/\s+/).filter(Boolean);
   return [...new Set(terms.map((t) => t.slice(0, MAX_TERM_LENGTH)))].slice(0, MAX_TERMS);
-}
-
-export function buildTsQuery(input: string): string {
-  return searchTerms(input)
-    .map((t) => `${t}:*`)
-    .join(" & ");
 }

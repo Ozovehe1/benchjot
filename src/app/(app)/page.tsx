@@ -1,7 +1,5 @@
-import { ExperimentsView } from "@/components/experiment-list";
-
-export const metadata = { title: "Experiments" };
+import { EntryList } from "@/components/entry-list";
 
 export default function Home() {
-  return <ExperimentsView />;
+  return <EntryList />;
 }

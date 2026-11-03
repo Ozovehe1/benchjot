@@ -1,23 +1,16 @@
-const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 31_536_000],
-  ["month", 2_592_000],
-  ["week", 604_800],
-  ["day", 86_400],
-  ["hour", 3_600],
-  ["minute", 60],
-];
+const SHORT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const LONG = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const TIME = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-export function timeAgo(iso: string, now = Date.now()): string {
-  const seconds = (new Date(iso).getTime() - now) / 1000;
-  for (const [unit, size] of UNITS) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return "just now";
+/** Quiet list date: time today, "3 Nov" this year, "3 Nov 2025" otherwise. */
+export function listDate(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  if (d.toDateString() === now.toDateString()) return TIME.format(d);
+  return d.getFullYear() === now.getFullYear() ? SHORT.format(d) : LONG.format(d);
 }
 
-export function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+export function displayTitle(title: string): string {
+  return title.trim() || "Untitled";
 }
 
 export function cn(...parts: (string | false | null | undefined)[]): string {
