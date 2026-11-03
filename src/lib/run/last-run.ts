@@ -60,3 +60,8 @@ export function fromLastRun(run: LastRun): { chunks: Chunk[]; result: RunResult 
     result: { outcome: run.outcome, error: run.error_line !== null ? { text: run.error_line, line: run.line } : null, ms: run.ms },
   };
 }
+
+/** The output exactly as shown: stdout and stderr in order, then the error. */
+export function outputText(chunks: Chunk[], error?: string | null): string {
+  return chunks.map((c) => c.text).join("") + (error ?? "");
+}

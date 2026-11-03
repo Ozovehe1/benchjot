@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codeHash, fromLastRun, MAX_SAVED_STREAM, toLastRun, truncate } from "@/lib/run/last-run";
+import { codeHash, fromLastRun, MAX_SAVED_STREAM, outputText, toLastRun, truncate } from "@/lib/run/last-run";
 import { lastRun, snippetPatch } from "@/lib/schemas";
 
 describe("truncate", () => {
@@ -54,5 +54,17 @@ describe("toLastRun / fromLastRun", () => {
     expect(r).toEqual({ outcome: "error", error: { text: "ZeroDivisionError", line: 3 }, ms: 13 });
     expect(run.code_hash).toBe(codeHash("code"));
     expect(run.code_hash).not.toBe(codeHash("code2"));
+  });
+});
+
+describe("outputText", () => {
+  it("joins stdout and stderr in order, then the error", () => {
+    const chunks = [
+      { stream: "stdout" as const, text: "a\n" },
+      { stream: "stderr" as const, text: "warn\n" },
+      { stream: "stdout" as const, text: "b\n" },
+    ];
+    expect(outputText(chunks, "Traceback")).toBe("a\nwarn\nb\nTraceback");
+    expect(outputText([], null)).toBe("");
   });
 });

@@ -1,5 +1,6 @@
 "use client";
-import type { Chunk } from "@/lib/run/last-run";
+import { useState } from "react";
+import { outputText, type Chunk } from "@/lib/run/last-run";
 import { RUN_TIMEOUT_MS, type RunResult } from "@/lib/run/types";
 import { TextButton } from "./ui";
 
@@ -40,6 +41,14 @@ export function RunOutput({
   onClear: () => void;
 }) {
   const error = result?.error?.text;
+  const [copied, setCopied] = useState(false);
+  const text = outputText(chunks, error);
+
+  async function copy() {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
   return (
     <section aria-label="Output" className="border-t border-line pt-2">
       {(chunks.length > 0 || error) && (
@@ -60,9 +69,16 @@ export function RunOutput({
           {stale && <span> · Output from an earlier version</span>}
         </span>
         {!running && (
-          <TextButton onClick={onClear}>
-            Clear
-          </TextButton>
+          <div className="flex items-center gap-5">
+            {text && (
+              <TextButton onClick={copy} aria-label="Copy output">
+                {copied ? "Copied" : "Copy"}
+              </TextButton>
+            )}
+            <TextButton onClick={onClear}>
+              Clear
+            </TextButton>
+          </div>
         )}
       </div>
       {note && <p className="pb-1 font-mono text-xs text-muted">{note}</p>}
