@@ -88,11 +88,11 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         placeholder="Title"
         aria-label="Title"
         maxLength={200}
-        className="mt-6 block w-full resize-none overflow-hidden text-[22px] font-semibold leading-snug outline-none"
+        className="mt-6 block w-full resize-none overflow-hidden text-xl font-semibold leading-snug outline-none"
       />
 
       {preview ? (
-        <div className="mt-4 min-h-40">{notes.trim() ? <Markdown>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
+        <div className="mt-4 min-h-24">{notes.trim() ? <Markdown>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
       ) : (
         <textarea
           ref={notesRef}
@@ -100,7 +100,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Write in Markdown"
           aria-label="Note"
-          className="mt-4 block min-h-40 w-full resize-none overflow-hidden leading-7 outline-none"
+          className="mt-4 block min-h-24 w-full resize-none overflow-hidden leading-7 outline-none"
         />
       )}
 
@@ -111,7 +111,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         </div>
       </section>
 
-      <div className="mt-16">
+      <div className="mt-12">
         <TextButton onClick={remove}>Delete note</TextButton>
       </div>
     </Column>

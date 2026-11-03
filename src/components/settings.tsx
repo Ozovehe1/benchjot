@@ -21,17 +21,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function Settings() {
+export function Settings({ email }: { email: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const [email, setEmail] = useState("");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    void supabase()
-      .auth.getUser()
-      .then(({ data }) => setEmail(data.user?.email ?? ""));
   }, []);
 
   async function signOut() {

@@ -129,10 +129,16 @@ def main():
         d.goto(f"{BASE}/")
         flow(d, "d", delete=not KEEP_ONE)
         d.goto(f"{BASE}/settings")
+        expect(d.get_by_text(EMAIL)).to_be_visible(timeout=10000)
         d.screenshot(path=f"{SHOTS}/d-06-settings.png")
         d.get_by_role("radio", name="Dark").click()
         d.goto(f"{BASE}/")
+        expect(d.locator("ul a").first.or_(d.get_by_text("No notes yet."))).to_be_visible(timeout=10000)
         d.screenshot(path=f"{SHOTS}/d-07-list-dark.png")
+        if KEEP_ONE:
+            d.locator("ul a").first.click()
+            expect(d.locator(".cm-content").first).to_be_visible(timeout=15000)
+            d.screenshot(path=f"{SHOTS}/d-08-entry-dark.png")
         step("dark theme from settings")
 
         if errors:
