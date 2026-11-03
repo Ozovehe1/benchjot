@@ -55,7 +55,7 @@ export function RunOutput({
           {summary(result, running, status)}
         </span>
         {!running && (
-          <TextButton onClick={onClear} className="text-xs">
+          <TextButton onClick={onClear}>
             Clear
           </TextButton>
         )}

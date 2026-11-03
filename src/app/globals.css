@@ -35,7 +35,10 @@
   color-scheme: dark;
 }
 
+/* --accent and --accent-ink are set on <html> from src/lib/brand.ts (one source). */
 @theme inline {
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
   --color-bg: var(--bg);
   --color-fg: var(--fg);
   --color-muted: var(--muted);

@@ -8,7 +8,7 @@ import { downloadName, isLanguageId, LANGUAGES, type LanguageId } from "@/lib/la
 import type { Snippet } from "@/lib/schemas";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { RunOutput, type OutputChunk } from "./run-output";
-import { TextButton } from "./ui";
+import { Button, TextButton } from "./ui";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -103,7 +103,7 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
             value={language}
             onChange={(e) => pickLanguage(e.target.value as LanguageId)}
             aria-label={`Language of code ${index + 1}`}
-            className="-ml-1 min-h-11 shrink-0 cursor-pointer appearance-none bg-transparent px-1 outline-none hover:text-fg"
+            className="-ml-1 min-h-12 shrink-0 cursor-pointer appearance-none bg-transparent px-1 outline-none hover:text-fg"
           >
             {LANGUAGES.map((l) => (
               <option key={l.id} value={l.id}>
@@ -114,13 +114,13 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
         </div>
         {runnable &&
           (running ? (
-            <TextButton onClick={() => handle.current?.stop()} className="text-fg">
+            <Button onClick={() => handle.current?.stop()} variant="neutral">
               Stop
-            </TextButton>
+            </Button>
           ) : (
-            <TextButton onClick={run} className="text-fg">
+            <Button onClick={run}>
               Run
-            </TextButton>
+            </Button>
           ))}
       </div>
 
@@ -137,19 +137,19 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
         <RunOutput chunks={output} status={status} running={running} result={result} onClear={() => (setOutput(null), setResult(null))} />
       )}
 
-      <div className="flex gap-5 pb-2 text-xs">
-        <TextButton onClick={copy} className="text-xs">
+      <div className="flex gap-5 pb-1">
+        <TextButton onClick={copy}>
           {copied ? "Copied" : "Copy"}
         </TextButton>
-        <TextButton onClick={() => download(downloadName(snippet.filename, language, index), content)} className="text-xs">
+        <TextButton onClick={() => download(downloadName(snippet.filename, language, index), content)}>
           Download
         </TextButton>
         {language === "python" && fixable > 0 && (
-          <TextButton onClick={autofix} className="text-xs">
+          <TextButton onClick={autofix}>
             Autofix
           </TextButton>
         )}
-        <TextButton onClick={remove} className="ml-auto text-xs">
+        <TextButton onClick={remove} className="ml-auto">
           Remove
         </TextButton>
       </div>

@@ -69,7 +69,8 @@ def phone(browser, errors):
     # Landing page for signed-out visitors
     page.goto(f"{BASE}/")
     expect(page).to_have_url(f"{BASE}/")
-    expect(page.get_by_text("Notes and code, nothing else.")).to_be_visible()
+    expect(page.get_by_role("heading", name="Write, run and fix code on your phone.")).to_be_visible()
+    expect(page.get_by_role("link", name="Benchjot home")).to_be_visible()
     page.screenshot(path=f"{SHOTS}/m-00-landing.png")
     page.get_by_role("link", name="Create account").click()
     expect(page.get_by_role("button", name="Create account")).to_be_visible()
@@ -82,7 +83,7 @@ def phone(browser, errors):
 
     # Quiet first state on home
     expect(page.get_by_label("Search")).to_be_visible()
-    expect(page.get_by_role("button", name="New entry")).to_be_visible(timeout=10000)
+    expect(page.get_by_role("button", name="New note")).to_be_visible(timeout=10000)
     expect(page.get_by_role("button", name="Upload file")).to_be_visible()
     expect(page.locator("ul a")).to_have_count(0)
     page.screenshot(path=f"{SHOTS}/m-02-first-state.png")
@@ -90,7 +91,7 @@ def phone(browser, errors):
 
     token = f"zqm{int(time.time())}"
     title = "Warmup schedule"
-    page.get_by_role("button", name="New entry").click()
+    page.get_by_role("button", name="New note").click()
     expect(page).to_have_url(re.compile(r"/n/[0-9a-f-]+"), timeout=15000)
     url = page.url
     page.get_by_label("Title").fill(title)
@@ -188,7 +189,7 @@ def desktop(browser, errors):
     step("project created and deleted from the list")
 
     # New from file inside the project files it there
-    d.get_by_label("New from file").set_input_files([{"name": "utils.ts", "mimeType": "text/plain", "buffer": b"export const clamp = (x: number) => Math.min(1, x);\n"}])
+    d.get_by_label("Upload file").set_input_files([{"name": "utils.ts", "mimeType": "text/plain", "buffer": b"export const clamp = (x: number) => Math.min(1, x);\n"}])
     expect(d).to_have_url(re.compile(r"/n/[0-9a-f-]+"), timeout=15000)
     expect(d.get_by_label("Title")).to_have_value("utils.ts")
     expect(d.get_by_label("Language of code 1")).to_have_value("typescript", timeout=10000)
@@ -202,7 +203,7 @@ def desktop(browser, errors):
     d.goto(f"{BASE}/")
     expect(d.get_by_role("list", name="Notes").get_by_role("link", name=re.compile("utils.ts"))).to_be_visible(timeout=10000)
     d.goto(project_url)
-    expect(d.get_by_role("button", name="New entry")).to_be_visible(timeout=10000)
+    expect(d.get_by_role("button", name="New note")).to_be_visible(timeout=10000)
     d.goto(entry_url)
     d.get_by_label("Project").select_option(label="ViT ablations")
     d.goto(project_url)
@@ -273,7 +274,7 @@ def run_phase(browser, errors):
     page = ctx.new_page()
     page.on("pageerror", lambda e: errors.append(str(e)))
     sign_in(page)
-    page.get_by_role("button", name="New", exact=True).click()
+    page.get_by_role("button", name="New note").click()
     expect(page).to_have_url(re.compile(r"/n/[0-9a-f-]+"), timeout=15000)
     page.get_by_label("Title").fill("Run checks")
     status = lambda: page.get_by_role("status", name="Run status")

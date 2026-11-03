@@ -116,7 +116,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           id="project"
           value={projectId}
           onChange={(e) => void move(e.target.value)}
-          className="min-h-9 max-w-[60vw] cursor-pointer appearance-none truncate bg-transparent outline-none hover:text-fg"
+          className="min-h-12 max-w-[60vw] cursor-pointer appearance-none truncate bg-transparent outline-none hover:text-fg"
         >
           <option value="">None</option>
           {projects?.map((p) => (

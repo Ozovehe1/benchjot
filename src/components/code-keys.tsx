@@ -57,7 +57,7 @@ export function CodeKeys({ view, language }: { view: EditorView; language: strin
           type="button"
           aria-label={k === "Tab" ? "Tab" : k === "undo" ? "Undo" : `Insert ${k}`}
           onClick={() => (k === "undo" ? (undo(view), view.focus()) : press(view, k))}
-          className="h-10 min-w-10 shrink-0 px-2.5 text-fg active:bg-tint"
+          className="h-12 min-w-11 shrink-0 px-2.5 text-fg active:bg-tint"
         >
           {k === "Tab" ? "tab" : k}
         </button>

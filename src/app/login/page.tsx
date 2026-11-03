@@ -1,11 +1,9 @@
 "use client";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { z } from "zod";
-import { APP_NAME } from "@/config/app";
 import { supabase } from "@/lib/supabase/client";
-import { Column, TextButton } from "@/components/ui";
+import { Button, Logo, TextButton } from "@/components/ui";
 
 const credentials = z.object({
   email: z.email("Enter a valid email."),
@@ -46,7 +44,8 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="mt-10">
+    <form onSubmit={submit} noValidate className="mt-8">
+      <h1 className="mb-6 text-[28px] font-semibold leading-tight tracking-tight">{signin ? "Sign in" : "Create account"}</h1>
       <input aria-label="Email" placeholder="Email" type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
       <input
         aria-label="Password"
@@ -62,15 +61,15 @@ function LoginForm() {
           {error}
         </p>
       )}
-      <button type="submit" disabled={loading} className="mt-8 h-11 w-full rounded-[3px] bg-fg text-sm text-bg disabled:opacity-60">
+      <Button type="submit" disabled={loading} className="mt-8 w-full">
         {signin ? "Sign in" : "Create account"}
-      </button>
+      </Button>
       <TextButton
         onClick={() => {
           setMode(signin ? "signup" : "signin");
           setError(null);
         }}
-        className="mt-2"
+        className="mt-1 w-full justify-center"
       >
         {signin ? "Create an account" : "I have an account"}
       </TextButton>
@@ -80,13 +79,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Column className="max-w-[400px] pt-[18vh]">
-      <h1 className="font-medium">
-        <Link href="/">{APP_NAME}</Link>
-      </h1>
-      <Suspense>
-        <LoginForm />
-      </Suspense>
-    </Column>
+    <div className="mx-auto w-full max-w-[440px] px-5">
+      <header className="flex h-16 items-center">
+        <Logo />
+      </header>
+      <main className="pt-[8vh]">
+        <Suspense>
+          <LoginForm />
+        </Suspense>
+      </main>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
 import { APP_DESCRIPTION, APP_NAME } from "@/config/app";
+import { BRAND } from "@/lib/brand";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
@@ -23,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={{ "--accent": BRAND.accent, "--accent-ink": BRAND.ink } as React.CSSProperties}>
       <body className="min-h-dvh font-sans text-[15px] leading-normal antialiased">
         <Providers>{children}</Providers>
       </body>

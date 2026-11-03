@@ -40,7 +40,7 @@ export function Settings({ email }: { email: string }) {
   return (
     <Column>
       <TopBar left={<TextLink href="/">All notes</TextLink>} />
-      <h1 className="mt-6 mb-4 font-semibold">Settings</h1>
+      <h1 className="mt-2 mb-4 text-xl font-semibold">Settings</h1>
       <div className="border-t border-line">
         <Row label="Account">
           <span className="truncate">{email}</span>
@@ -53,7 +53,8 @@ export function Settings({ email }: { email: string }) {
                 role="radio"
                 aria-checked={mounted && theme === t.id}
                 onClick={() => setTheme(t.id)}
-                className={cn(mounted && theme === t.id && "text-fg underline underline-offset-4")}
+                strong={mounted && theme === t.id}
+                className={cn(mounted && theme === t.id && "underline underline-offset-4")}
               >
                 {t.label}
               </TextButton>

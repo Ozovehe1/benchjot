@@ -2,13 +2,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { APP_NAME } from "@/config/app";
 import { createEntry, createProject, createSnippets, deleteProject, renameProject, useEntries, useProjects } from "@/lib/data";
 import { displayTitle, listDate } from "@/lib/format";
 import type { Project } from "@/lib/schemas";
 import type { CodeFile } from "@/lib/upload";
 import { FilePicker } from "./file-picker";
-import { Column, TextButton, TextLink, TopBar } from "./ui";
+import { Button, Column, TextButton, TextLink, TopBar } from "./ui";
 
 const row = "flex items-baseline justify-between gap-6 py-4";
 
@@ -77,20 +76,12 @@ export function EntryList({ project }: { project?: Project }) {
   return (
     <Column className="pb-16">
       <TopBar
-        left={project ? <TextLink href="/">All notes</TextLink> : <span className="font-medium">{APP_NAME}</span>}
-        right={
-          <>
-            <TextButton onClick={newEntry} disabled={busy}>
-              New
-            </TextButton>
-            <FilePicker label="New from file" onFiles={newFromFiles} onError={setError} />
-            {!project && <TextLink href="/settings">Settings</TextLink>}
-          </>
-        }
+        left={project && <TextLink href="/">All notes</TextLink>}
+        right={<TextLink href="/settings">Settings</TextLink>}
       />
 
       {project && (
-        <div className="mt-6 flex items-baseline justify-between gap-6">
+        <div className="mt-2 flex items-center justify-between gap-6">
           <h1 className="truncate text-xl font-semibold">{project.name}</h1>
           <div className="flex shrink-0 gap-5">
             <TextButton onClick={rename}>Rename</TextButton>
@@ -99,13 +90,20 @@ export function EntryList({ project }: { project?: Project }) {
         </div>
       )}
 
+      <div className="mt-3 flex items-center gap-5">
+        <Button onClick={newEntry} disabled={busy} className="flex-1 sm:flex-none">
+          New note
+        </Button>
+        <FilePicker label="Upload file" onFiles={newFromFiles} onError={setError} />
+      </div>
+
       <input
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search"
         aria-label="Search"
-        className="mt-4 h-11 w-full border-b border-line outline-none focus:border-faint"
+        className="mt-4 h-12 w-full border-b border-line outline-none focus:border-faint"
       />
       {(error || loadError) && (
         <p role="alert" className="py-3 text-sm">
@@ -135,12 +133,7 @@ export function EntryList({ project }: { project?: Project }) {
         (searching ? (
           <p className="py-10 text-sm text-muted">Nothing matches.</p>
         ) : (
-          <div className="flex gap-6 py-8">
-            <TextButton onClick={newEntry} disabled={busy}>
-              New entry
-            </TextButton>
-            <FilePicker label="Upload file" onFiles={newFromFiles} onError={setError} />
-          </div>
+          <p className="py-10 text-sm text-muted">No notes yet.</p>
         ))}
       <ul aria-label="Notes" className="divide-y divide-line">
         {entries?.map((e) => (
