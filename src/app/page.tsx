@@ -1,5 +1,4 @@
 import { EntryList } from "@/components/entry-list";
-import { InstallHint } from "@/components/install-hint";
 import { ButtonLink, Logo, TextLink } from "@/components/ui";
 import { APP_DESCRIPTION } from "@/config/app";
 import { serverSupabase } from "@/lib/supabase/server";
@@ -72,7 +71,6 @@ export default async function Home() {
           <TextLink href="/login" strong className="w-full justify-center">
             Sign in
           </TextLink>
-          <InstallHint />
         </nav>
       </main>
     </div>
