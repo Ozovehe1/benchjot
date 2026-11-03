@@ -95,7 +95,7 @@ def phone(browser, errors):
     expect(page).to_have_url(re.compile(r"/n/[0-9a-f-]+"), timeout=15000)
     url = page.url
     page.get_by_label("Title").fill(title)
-    page.get_by_label("Note").fill("## Idea\nWarm up for **500** steps, then hold.\n\n- try 1000 too")
+    page.get_by_label("Experiment note").fill("## Idea\nWarm up for **500** steps, then hold.\n\n- try 1000 too")
     wait_saved(page)
     step("note written")
 
@@ -124,7 +124,7 @@ def phone(browser, errors):
 
     page.reload()
     expect(page.get_by_label("Title")).to_have_value(title, timeout=15000)
-    expect(page.get_by_label("Note")).to_have_value(re.compile("Warm up for"))
+    expect(page.get_by_label("Experiment note")).to_have_value(re.compile("Warm up for"))
     expect(page.locator(".cm-content").first).to_contain_text(f"lr_{token}", timeout=15000)
     expect(page.get_by_label("Language of code 1")).to_have_value("python")
     step("persisted after reload")

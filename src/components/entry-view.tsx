@@ -11,6 +11,9 @@ import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
 import { Column, TextButton, TextLink, TopBar } from "./ui";
 
+/** Placeholder and accessible name of the note body. */
+const NOTE_LABEL = "Experiment note";
+
 export function EntryView({ id }: { id: string }) {
   const { data: entry, error, isLoading } = useEntry(id);
   const { data: projects } = useProjects();
@@ -135,8 +138,8 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           ref={notesRef}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Write in Markdown"
-          aria-label="Note"
+          placeholder={NOTE_LABEL}
+          aria-label={NOTE_LABEL}
           className="mt-4 block min-h-24 w-full resize-none overflow-hidden leading-7 outline-none"
         />
       )}
