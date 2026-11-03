@@ -32,6 +32,7 @@ export function Settings({ email }: { email: string }) {
 
   async function signOut() {
     await supabase().auth.signOut();
+    navigator.serviceWorker?.controller?.postMessage("signed-out"); // drop cached pages
     router.replace("/login");
     router.refresh();
   }

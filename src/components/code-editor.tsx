@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror, { EditorView, type Extension } from "@uiw/react-codemirror";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { languageSettings, loadGrammar } from "@/lib/cm-languages";
+import { errorLineField, lintFor, setErrorLine } from "@/lib/cm-run";
 import { CodeKeys } from "./code-keys";
 
 // Theme from the app's CSS variables, so it follows light/dark.
@@ -65,16 +66,30 @@ export function CodeEditor({
   onChange,
   language,
   label,
+  errorLine = null,
+  onFixable,
 }: {
   value: string;
   onChange: (v: string) => void;
   language: string;
   label: string;
+  /** 1-based line to highlight after a failed run; cleared by the next edit. */
+  errorLine?: number | null;
+  /** Count of issues the linter can fix automatically. */
+  onFixable?: (n: number) => void;
 }) {
   const [grammar, setGrammar] = useState<Extension>([]);
   const [view, setView] = useState<EditorView | null>(null);
   const [focused, setFocused] = useState(false);
+  // Lint starts once the block is touched, so just reading a note never downloads a linter.
+  const [touched, setTouched] = useState(false);
   const coarse = useCoarsePointer();
+  const fixableRef = useRef(onFixable);
+  fixableRef.current = onFixable;
+
+  useEffect(() => {
+    view?.dispatch({ effects: setErrorLine.of(errorLine) });
+  }, [view, errorLine]);
 
   useEffect(() => {
     let live = true;
@@ -92,12 +107,15 @@ export function CodeEditor({
       grammar,
       languageSettings(language),
       codeInput(label),
+      errorLineField,
+      touched ? lintFor(language, (n) => fixableRef.current?.(n)) : [],
       EditorView.focusChangeEffect.of((_state, focusing) => {
         setFocused(focusing);
+        if (focusing) setTouched(true);
         return null;
       }),
     ],
-    [grammar, language, label],
+    [grammar, language, label, touched],
   );
 
   return (

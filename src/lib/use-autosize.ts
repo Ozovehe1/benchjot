@@ -6,7 +6,7 @@ export function useAutosize(value: string) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || CSS.supports("field-sizing", "content")) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);

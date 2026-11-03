@@ -10,7 +10,9 @@ Phone (390px): landing page, create account from it, quiet first state,
 new note, write, add code, mobile symbol row, reload persists, preview,
 upload files (text accepted, binary rejected), search code, delete.
 Desktop (1280px): new from file, language behaviour (indent, comment toggle,
-completion), settings + dark mode. KEEP_ONE=1 leaves the desktop note behind
+completion), settings + dark mode.
+Run (phone, E2E_ONLY=r): Python/JS/TS runs, error line, Stop, lint + autofix,
+numpy via Pyodide packages, PWA manifest + service worker + offline reload. KEEP_ONE=1 leaves the desktop note behind
 for the RLS check. Screenshots go to ./screenshots.
 """
 import os
@@ -43,7 +45,7 @@ def step(name):
 
 
 def wait_saved(page):
-    expect(page.get_by_role("status")).to_have_text("Saved", timeout=15000)
+    expect(page.get_by_role("status", name="Save status")).to_have_text("Saved", timeout=15000)
 
 
 def editor_text(page, i=0):
@@ -266,15 +268,129 @@ def desktop(browser, errors):
     ctx.close()
 
 
+def run_phase(browser, errors):
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, ignore_https_errors=True)
+    page = ctx.new_page()
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    sign_in(page)
+    page.get_by_role("button", name="New", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/n/[0-9a-f-]+"), timeout=15000)
+    page.get_by_label("Title").fill("Run checks")
+    status = lambda: page.get_by_role("status", name="Run status")
+    output = lambda: page.get_by_role("region", name="Output")
+
+    def block(lang, code):
+        n = page.locator("select[aria-label^='Language of code']").count()
+        page.get_by_role("button", name="Add code").click()
+        sel = page.get_by_label(f"Language of code {n + 1}")
+        expect(sel).to_be_visible(timeout=10000)
+        sel.select_option(lang)
+        ed = page.locator(".cm-content").nth(n)
+        expect(ed).to_be_visible(timeout=10000)
+        ed.click()
+        page.keyboard.insert_text(code)
+        return n
+
+    # Python: output, error mapped to a line
+    block("python", "def f(x):\n    return 1 / x\n\nprint('hello', 6 * 7)\nf(0)\n")
+    page.get_by_role("button", name="Run", exact=True).click()
+    expect(status()).to_have_text(re.compile(r"Error on line 2"), timeout=90000)
+    expect(output()).to_contain_text("hello 42")
+    expect(output()).to_contain_text("ZeroDivisionError")
+    expect(page.locator(".cm-errorLine")).to_have_text("    return 1 / x")
+    page.screenshot(path=f"{SHOTS}/r-01-python-error.png", full_page=True)
+    step("Python runs (Pyodide), output shown, error mapped to line 2 and highlighted")
+
+    # Stop a runaway Python loop
+    page.get_by_role("button", name="Clear").click()
+    page.locator(".cm-content").first.click()
+    page.keyboard.press("Control+a")
+    page.keyboard.insert_text("while True:\n    pass\n")
+    page.get_by_role("button", name="Run", exact=True).click()
+    page.get_by_role("button", name="Stop").click(timeout=20000)
+    expect(status()).to_have_text(re.compile("Stopped"), timeout=10000)
+    step("Stop ends a runaway Python run")
+
+    # Lint + autofix (Ruff)
+    page.locator(".cm-content").first.click()
+    page.keyboard.press("Control+a")
+    page.keyboard.insert_text("import os\nimport sys\nprint(sys.version)\n")
+    expect(page.locator(".cm-lintRange-warning").first).to_be_visible(timeout=60000)
+    page.get_by_role("button", name="Autofix").click()
+    expect(page.locator(".cm-content").first).not_to_contain_text("import os", timeout=10000)
+    expect(page.locator(".cm-content").first).to_contain_text("import sys")
+    step("Ruff lint underlines an unused import; Autofix removes it")
+
+    # numpy through loadPackagesFromImports
+    page.locator(".cm-content").first.click()
+    page.keyboard.press("Control+a")
+    page.keyboard.insert_text("import numpy as np\nprint(np.arange(4).sum())\n")
+    page.get_by_role("button", name="Run", exact=True).click()
+    expect(status()).to_have_text(re.compile(r"^\d+\.\d+ s$"), timeout=120000)
+    expect(output()).to_contain_text("6")
+    step("numpy loads on demand and runs")
+
+    # JavaScript and TypeScript
+    page.get_by_role("button", name="Clear").click()
+    j = block("javascript", "const xs = [1, 2, 3]\nconsole.log(xs.map(x => x * 2))\nnull.foo\n")
+    page.get_by_role("button", name="Run", exact=True).nth(1).click()
+    expect(status()).to_have_text(re.compile(r"Error on line 3"), timeout=20000)
+    expect(output()).to_contain_text("[2,4,6]")
+    step("JavaScript runs in a worker; error mapped to line 3")
+    page.get_by_role("button", name="Clear").click()
+    page.locator(".cm-content").nth(j).click()
+    page.keyboard.press("Control+a")
+    page.keyboard.insert_text("let n = 0\nwhile (true) { n++ }\n")
+    page.get_by_role("button", name="Run", exact=True).nth(1).click()
+    page.get_by_role("button", name="Stop").click(timeout=10000)
+    expect(status()).to_have_text(re.compile("Stopped"), timeout=10000)
+    page.get_by_role("button", name="Clear").click()
+    t = block("typescript", "interface P { lr: number }\nconst p: P = { lr: 0.001 }\nconsole.log(`lr=${p.lr}`)\n")
+    page.get_by_role("button", name="Run", exact=True).nth(2).click()
+    expect(output()).to_contain_text("lr=0.001", timeout=20000)
+    page.locator(".cm-content").nth(t).click()
+    page.keyboard.press("Control+End")
+    page.keyboard.insert_text("const bad: number = ;\n")
+    expect(page.locator(".cm-lintRange-error").first).to_be_visible(timeout=10000)
+    wait_saved(page)
+    page.screenshot(path=f"{SHOTS}/r-02-js-ts.png", full_page=True)
+    step("TypeScript transpiles and runs; Stop ends a runaway JS loop; TS syntax error underlined")
+
+    # PWA: manifest, service worker, offline reload
+    entry = page.url
+    m = page.request.get(f"{BASE}/manifest.webmanifest")
+    assert m.ok and m.json()["display"] == "standalone", m.status
+    page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+    page.reload()
+    page.wait_for_timeout(1500)
+    ctx.set_offline(True)
+    page.goto(f"{BASE}/offline-check-{int(time.time())}", wait_until="domcontentloaded")
+    expect(page.get_by_text("You\u2019re offline")).to_be_visible(timeout=10000)
+    page.goto(entry, wait_until="domcontentloaded")
+    expect(page.get_by_role("link", name="All notes")).to_be_visible(timeout=10000)  # cached page shell
+    page.screenshot(path=f"{SHOTS}/r-03-offline.png")
+    ctx.set_offline(False)
+    step("PWA: manifest, service worker, offline fallback and cached page")
+
+    page.goto(entry)
+    page.once("dialog", lambda d: d.accept())
+    page.get_by_role("button", name="Delete note").click()
+    expect(page).to_have_url(f"{BASE}/", timeout=10000)
+    ctx.close()
+
+
 def main():
     os.makedirs(SHOTS, exist_ok=True)
     errors = []
     with sync_playwright() as p:
         browser = launch(p)
-        if ONLY in ("", "m"):
+        only = set(ONLY.split(",")) if ONLY else {"m", "d", "r"}
+        if "m" in only:
             phone(browser, errors)
-        if ONLY in ("", "d"):
+        if "d" in only:
             desktop(browser, errors)
+        if "r" in only:
+            run_phase(browser, errors)
         browser.close()
     if errors:
         print("Page errors:", *errors, sep="\n  ")

@@ -63,11 +63,20 @@
     background: color-mix(in srgb, var(--fg) 14%, transparent);
   }
   input,
+  textarea {
+    font-size: 16px; /* stops Android zoom on focus */
+  }
+  input,
   textarea,
   select {
-    font-size: 16px; /* stops Android zoom on focus */
     background: transparent;
     color: inherit;
+  }
+  select {
+    font: inherit;
+  }
+  textarea {
+    field-sizing: content; /* grows with its text; useAutosize covers browsers without it */
   }
   input::placeholder,
   textarea::placeholder {
@@ -107,3 +116,11 @@
 .cm-editor { font-size: 13.5px; }
 .cm-editor.cm-focused { outline: none; }
 .cm-scroller { font-family: var(--font-mono) !important; line-height: 1.65 !important; }
+.cm-errorLine { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.cm-lintRange-error,
+.cm-lintRange-warning,
+.cm-lintRange-info { background-image: none !important; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.cm-lintRange-error { text-decoration-color: var(--fg); }
+.cm-lintRange-warning,
+.cm-lintRange-info { text-decoration-color: var(--faint); }
+.cm-diagnostic { padding: 4px 8px; border-left: none !important; font-size: 12px; }

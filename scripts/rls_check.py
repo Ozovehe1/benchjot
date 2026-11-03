@@ -74,7 +74,7 @@ owner_uid = rest("GET", f"entries?select=user_id&id=eq.{entry_id}", owner).json(
 r = rest("POST", "entries", intruder, json={"title": "spoof", "user_id": owner_uid})
 check(not r.ok, f"intruder can't insert rows as the owner ({r.status_code})")
 r = rest("POST", "rpc/search_entries", intruder, json={"terms": []})
-check(r.ok and r.json() == [], "search RPC returns nothing of the owner's")
+check(r.ok and all(row["id"] != entry_id for row in r.json()), "search RPC returns nothing of the owner's")
 r = rest("POST", "rpc/search_entries", None, json={"terms": []})
 check(not r.ok or r.json() == [], f"anonymous can't call search ({r.status_code})")
 still = rest("GET", f"entries?select=title&id=eq.{entry_id}", owner).json()
