@@ -16,6 +16,7 @@ import {
   type Entry,
   type EntryListItem,
   type EntryPatch,
+  type LastRun,
   type Project,
   type Snippet,
   type SnippetInput,
@@ -114,8 +115,10 @@ export async function createEntry(title = "", projectId: string | null = null): 
 }
 
 export async function updateEntry(id: string, patch: EntryPatch): Promise<void> {
-  check(await supabase().from("entries").update(validate(entryPatch, patch)).eq("id", id).select("id").single());
-  if ("project_id" in patch) void globalMutate(keys.entry(id));
+  const row = validate(entryPatch, patch);
+  check(await supabase().from("entries").update(row).eq("id", id).select("id").single());
+  // Keep the cached note current so reopening it in-app shows what was saved.
+  await globalMutate(keys.entry(id), (e?: Entry) => (e ? { ...e, ...row } : e), { revalidate: false });
   void refreshLists();
 }
 
@@ -144,9 +147,25 @@ export function createEmptySnippet(entryId: string, position: number): Promise<v
   return createSnippets(entryId, position, [{ filename: "", language: DEFAULT_LANGUAGE, content: "" }]);
 }
 
-export async function updateSnippet(id: string, patch: SnippetPatch): Promise<void> {
-  check(await supabase().from("snippets").update(validate(snippetPatch, patch)).eq("id", id).select("id").single());
-  void refreshLists();
+/**
+ * Saves a patch (code, language, or the latest run) and merges it into the
+ * cached list, so reopening the note in-app shows what was saved.
+ */
+export async function updateSnippet(snippet: Pick<Snippet, "id" | "entry_id">, patch: SnippetPatch): Promise<void> {
+  const row = validate(snippetPatch, patch);
+  check(await supabase().from("snippets").update(row).eq("id", snippet.id).select("id").single());
+  await globalMutate(
+    keys.snippets(snippet.entry_id),
+    (list?: Snippet[]) => list?.map((s) => (s.id === snippet.id ? { ...s, ...row } : s)),
+    { revalidate: false },
+  );
+  // A saved run isn't an edit: the list order and search don't change.
+  if ("content" in row || "language" in row) void refreshLists();
+}
+
+/** Stores (or, with null, clears) a code block's latest run. */
+export function saveLastRun(snippet: Pick<Snippet, "id" | "entry_id">, run: LastRun | null): Promise<void> {
+  return updateSnippet(snippet, { last_run: run });
 }
 
 export async function deleteSnippet(snippet: Snippet): Promise<void> {

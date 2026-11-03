@@ -1,11 +1,7 @@
 "use client";
-import { RUN_TIMEOUT_MS, type RunResult, type Stream } from "@/lib/run/types";
+import type { Chunk } from "@/lib/run/last-run";
+import { RUN_TIMEOUT_MS, type RunResult } from "@/lib/run/types";
 import { TextButton } from "./ui";
-
-export interface OutputChunk {
-  stream: Stream;
-  text: string;
-}
 
 function summary(result: RunResult | null, running: boolean, status: string): string {
   if (running) return status || "Running…";
@@ -29,12 +25,18 @@ export function RunOutput({
   status,
   running,
   result,
+  stale = false,
+  note = null,
   onClear,
 }: {
-  chunks: OutputChunk[];
+  chunks: Chunk[];
   status: string;
   running: boolean;
   result: RunResult | null;
+  /** The code changed since this run. */
+  stale?: boolean;
+  /** A quiet line under the status, e.g. a save failure. */
+  note?: string | null;
   onClear: () => void;
 }) {
   const error = result?.error?.text;
@@ -51,8 +53,11 @@ export function RunOutput({
         </pre>
       )}
       <div className="flex items-center justify-between gap-4">
-        <span role="status" aria-label="Run status" className="font-mono text-xs text-faint">
-          {summary(result, running, status)}
+        <span className="font-mono text-xs text-faint">
+          <span role="status" aria-label="Run status">
+            {summary(result, running, status)}
+          </span>
+          {stale && <span> · Output from an earlier version</span>}
         </span>
         {!running && (
           <TextButton onClick={onClear}>
@@ -60,6 +65,7 @@ export function RunOutput({
           </TextButton>
         )}
       </div>
+      {note && <p className="pb-1 font-mono text-xs text-muted">{note}</p>}
     </section>
   );
 }

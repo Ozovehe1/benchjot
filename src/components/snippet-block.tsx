@@ -1,15 +1,16 @@
 "use client";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAutosave } from "@/lib/autosave";
-import { deleteSnippet, updateSnippet, usePlan } from "@/lib/data";
+import { deleteSnippet, saveLastRun, updateSnippet, usePlan } from "@/lib/data";
 import { detectLanguage } from "@/lib/detect-language";
 import { downloadName, isLanguageId, LANGUAGES, type LanguageId } from "@/lib/languages";
 import type { Snippet } from "@/lib/schemas";
+import { codeHash, fromLastRun, toLastRun, type Chunk } from "@/lib/run/last-run";
 import { runsOnServer } from "@/lib/run/server-languages";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { FixDiff } from "./fix-diff";
-import { RunOutput, type OutputChunk } from "./run-output";
+import { RunOutput } from "./run-output";
 import { Button, TextButton } from "./ui";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
@@ -36,19 +37,39 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
   const [fixable, setFixable] = useState(0);
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState("");
-  const [output, setOutput] = useState<OutputChunk[] | null>(null);
-  const [result, setResult] = useState<RunResult | null>(null);
+  // Output shown under the block: the live run, or the saved latest run on open.
+  const saved = snippet.last_run ? fromLastRun(snippet.last_run) : null;
+  const [output, setOutput] = useState<Chunk[] | null>(saved?.chunks ?? null);
+  const [result, setResult] = useState<RunResult | null>(saved?.result ?? null);
+  const [ranHash, setRanHash] = useState<string | null>(snippet.last_run?.code_hash ?? null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [fix, setFix] = useState<{ before: string; code: string; summary: string } | null>(null);
   const [fixing, setFixing] = useState(false);
   const handle = useRef<RunHandle | null>(null);
   const plan = usePlan();
-  const { flush } = useAutosave({ language, content }, (v) => updateSnippet(snippet.id, v), {
+  const { flush } = useAutosave({ language, content }, (v) => updateSnippet(snippet, v), {
     baseline: { language: initial, content: snippet.content },
   });
   const runnable = runsInBrowser(language);
   const serverable = runsOnServer(language);
   const pro = plan === "pro";
   const lastError = result?.outcome === "error" ? result.error?.text ?? "" : "";
+  const hash = useMemo(() => codeHash(content), [content]);
+  const stale = !running && output !== null && ranHash !== null && ranHash !== hash;
+
+  /** Saves (or clears) the latest run; a failure shows under the output, the run itself still shows. */
+  function persist(run: Parameters<typeof saveLastRun>[1]) {
+    setSaveError(null);
+    saveLastRun(snippet, run).catch((e: Error) => setSaveError(`Output not saved: ${e.message}`));
+  }
+
+  function clearOutput() {
+    setOutput(null);
+    setResult(null);
+    setFix(null);
+    setRanHash(null);
+    persist(null);
+  }
 
   function edit(next: string) {
     setContent(next);
@@ -66,26 +87,32 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
     const lang = language;
     const inBrowser = where === "browser" && runsInBrowser(lang);
     if (!inBrowser && !(where === "server" && serverable && pro)) return;
+    const code = content;
+    const chunks: Chunk[] = [];
     let size = 0;
     const onOutput = (stream: Stream, text: string) => {
       if (size > MAX_OUTPUT) return;
       size += text.length;
-      setOutput((o) => [...(o ?? []), { stream, text: size > MAX_OUTPUT ? text + "\n[output truncated]\n" : text }]);
+      const chunk = { stream, text: size > MAX_OUTPUT ? text + "\n[output truncated]\n" : text };
+      chunks.push(chunk);
+      setOutput((o) => [...(o ?? []), chunk]);
     };
     setOutput([]);
+    setRanHash(codeHash(code));
     setResult(null);
     setFix(null);
     setRunning(true);
     const h =
       inBrowser && runsInBrowser(lang)
-        ? (await import("@/lib/run/runner")).runCode(lang, content, { onStatus: setStatus, onOutput })
-        : (await import("@/lib/run/server-client")).runOnServer(lang, content, onOutput, setStatus);
+        ? (await import("@/lib/run/runner")).runCode(lang, code, { onStatus: setStatus, onOutput })
+        : (await import("@/lib/run/server-client")).runOnServer(lang, code, onOutput, setStatus);
     handle.current = h;
     const r = await h.done;
     handle.current = null;
     setStatus("");
     setResult(r);
     setRunning(false);
+    persist(toLastRun(chunks, r, inBrowser ? "browser" : "server", code));
   }
 
   async function proposeFix() {
@@ -165,12 +192,12 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
         onChange={edit}
         language={language}
         label={`Code ${index + 1}`}
-        errorLine={result?.error?.line ?? null}
+        errorLine={stale ? null : result?.error?.line ?? null}
         onFixable={setFixable}
       />
 
       {output && (
-        <RunOutput chunks={output} status={status} running={running} result={result} onClear={() => (setOutput(null), setResult(null), setFix(null))} />
+        <RunOutput chunks={output} status={status} running={running} result={result} stale={stale} note={saveError} onClear={clearOutput} />
       )}
 
       {fix && <FixDiff before={fix.before} after={fix.code} summary={fix.summary} onAccept={acceptFix} onReject={() => setFix(null)} />}

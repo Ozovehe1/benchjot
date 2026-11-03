@@ -10,3 +10,4 @@ screenshots
 test-results
 playwright-report
 public/vendor
+__pycache__/

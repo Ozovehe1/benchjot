@@ -20,6 +20,7 @@ npm run check                # typecheck + lint + tests
 ## Database
 
 Three tables, `projects`, `entries` and `snippets`, all owner-only via Row Level Security (`auth.uid() = user_id`).
+Each snippet keeps its latest run in `snippets.last_run` (stdout and stderr capped at 64 KB each, the error line, time, browser or server, a hash of the code it ran, when), so output survives reloads; the UI marks it "Output from an earlier version" once the code changes, and Clear removes it. Saving a run doesn't count as editing the note.
 Migrations live in `supabase/migrations/` and are applied through the Supabase Management API:
 
 ```bash
