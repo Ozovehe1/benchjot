@@ -29,3 +29,10 @@ SUPABASE_PROJECT_REF=xxxx SUPABASE_ACCESS_TOKEN=sbp_... npm run db:migrate
 ## Checks against production
 
 `scripts/e2e_smoke.py` (Playwright, phone + desktop) and `scripts/rls_check.py` (a second user can't see or change the first user's rows).
+
+## Pro server runs and Fix
+
+- `POST /api/run` runs Python, C, C++, Go, Rust or Java in a Modal Sandbox (2 CPU, 2–4 GiB, 60 s default). Pro only: the route reads `profiles.plan`, which users can read but never write.
+- Per-snippet options are comments: `# pip: torch transformers`, `# gpu: T4` (Python only; T4, L4, A10G, A100), `# timeout: 120` (5–240 s; use the language's own comment token).
+- `POST /api/fix` sends the code and its last error to Groq and returns the corrected file; the UI shows a minimal diff to accept or reject.
+- Server env: `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `GROQ_API_KEY` (optional `GROQ_MODEL`, default `openai/gpt-oss-120b`).
