@@ -10,6 +10,10 @@ describe("key-value rows", () => {
   it("keeps values that look like markers", () => {
     expect(rowsToStrings([{ key: "note", value: "!important" }])).toEqual({ ok: true, value: { note: "!important" } });
   });
+  it("ignores keys with no value (template rows)", () => {
+    expect(rowsToStrings([{ key: "python", value: "" }, { key: "seed", value: "42" }])).toEqual({ ok: true, value: { seed: "42" } });
+    expect(rowsToNumbers([{ key: "acc", value: " " }])).toEqual({ ok: true, value: {} });
+  });
   it("flags duplicate keys and missing keys", () => {
     expect(rowsToStrings([{ key: "a", value: "1" }, { key: "a", value: "2" }]).ok).toBe(false);
     expect(rowsToStrings([{ key: "", value: "2" }]).ok).toBe(false);

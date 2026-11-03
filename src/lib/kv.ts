@@ -20,6 +20,7 @@ function collect<T>(rows: KVRow[], parse: (raw: string, key: string) => Parsed<T
     const raw = row.value.trim();
     if (!key && !raw) continue; // blank row: ignore
     if (!key) return { ok: false, error: `Value "${raw}" has no key` };
+    if (!raw) continue; // key left unfilled (e.g. an environment template row): ignore
     if (Object.hasOwn(out, key)) return { ok: false, error: `Duplicate key "${key}"` };
     const parsed = parse(raw, key);
     if ("error" in parsed) return { ok: false, error: parsed.error };
