@@ -69,7 +69,7 @@ def phone(browser, errors):
     # Landing page for signed-out visitors
     page.goto(f"{BASE}/")
     expect(page).to_have_url(f"{BASE}/")
-    expect(page.get_by_role("heading", name="Write, run and fix code on your phone.")).to_be_visible()
+    expect(page.get_by_role("heading", name="A research jotter for your code.")).to_be_visible()
     expect(page.get_by_role("link", name="Benchjot home")).to_be_visible()
     page.screenshot(path=f"{SHOTS}/m-00-landing.png")
     page.get_by_role("link", name="Create account").click()

@@ -2,43 +2,42 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* One neutral palette. Light: near-black on off-white. Dark: soft, not pure black.
-   Muted text stays >= 4.5:1 against the background in both. */
+/* The palette, in one place. Dark is the default: charcoal background, ash-white
+   text and primary buttons, muted ash greys for secondary text and hairlines.
+   Light inverts it. --charcoal and --ash come from src/lib/brand.ts (set on <html>).
+   Syntax colours are greyscale; strings carry the one subtle tint. */
 :root,
-.light {
-  --bg: #fbfaf7;
-  --fg: #1c1c1a;
-  --muted: #6b6a66;
-  --faint: #8f8d88;
-  --line: #e7e5e0;
-  --tint: #f2f1ed;
-  --hl-keyword: #5c4a8c;
-  --hl-string: #4d6b37;
-  --hl-number: #8a5527;
-  --hl-comment: #8f8d88;
-  --hl-type: #3a5e78;
-  color-scheme: light;
-}
-
 .dark {
-  --bg: #1a1a19;
-  --fg: #e4e3df;
-  --muted: #a09f9a;
-  --faint: #7c7b77;
-  --line: #2e2e2c;
-  --tint: #222221;
-  --hl-keyword: #b5a8db;
-  --hl-string: #a9c294;
-  --hl-number: #d6a679;
-  --hl-comment: #7c7b77;
-  --hl-type: #96b5cc;
+  --bg: var(--charcoal);
+  --fg: var(--ash);
+  --muted: #8a8885;
+  --faint: #6f6d6a;
+  --line: #2a2a2a;
+  --tint: #1d1d1d;
+  --hl-keyword: #d9d7d4;
+  --hl-string: #a3aeb1;
+  --hl-number: #c2c0bc;
+  --hl-comment: #6f6d6a;
+  --hl-type: #b3b1ad;
   color-scheme: dark;
 }
 
-/* --accent and --accent-ink are set on <html> from src/lib/brand.ts (one source). */
+.light {
+  --bg: var(--ash);
+  --fg: var(--charcoal);
+  --muted: #5c5a57;
+  --faint: #7a7874;
+  --line: #d0cecb;
+  --tint: #dedcd9;
+  --hl-keyword: #161616;
+  --hl-string: #4b585c;
+  --hl-number: #3f3d3a;
+  --hl-comment: #7a7874;
+  --hl-type: #34322f;
+  color-scheme: light;
+}
+
 @theme inline {
-  --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
   --color-bg: var(--bg);
   --color-fg: var(--fg);
   --color-muted: var(--muted);

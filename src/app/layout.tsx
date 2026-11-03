@@ -6,25 +6,22 @@ import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
+  title: { default: `${APP_NAME} · ${APP_DESCRIPTION}`, template: `%s · ${APP_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   icons: { apple: "/icons/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a19" },
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
-  ],
+  themeColor: BRAND.charcoal,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning style={{ "--accent": BRAND.accent, "--accent-ink": BRAND.ink } as React.CSSProperties}>
+    <html lang="en" suppressHydrationWarning style={{ "--charcoal": BRAND.charcoal, "--ash": BRAND.ash } as React.CSSProperties}>
       <body className="min-h-dvh font-sans text-[15px] leading-normal antialiased">
         <Providers>{children}</Providers>
       </body>

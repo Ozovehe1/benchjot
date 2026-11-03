@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import { BRAND, MARK, logoSvg } from "@/lib/brand";
 
 describe("logoSvg", () => {
-  it("draws the tile in the accent and every glyph path in ink", () => {
+  it("draws ash glyphs on a rounded charcoal square, nothing else", () => {
     const svg = logoSvg();
     expect(svg.startsWith("<svg")).toBe(true);
-    expect(svg).toContain(`rx="${MARK.radius}" fill="${BRAND.accent}"`);
+    expect(svg).toContain(`rx="${MARK.radius}" fill="${BRAND.charcoal}"`);
     for (const d of MARK.paths) expect(svg).toContain(`d="${d}"`);
-    expect(svg.match(new RegExp(`stroke="${BRAND.ink}"`, "g"))).toHaveLength(MARK.paths.length);
+    expect(svg.match(new RegExp(`stroke="${BRAND.ash}"`, "g"))).toHaveLength(MARK.paths.length);
+    const colours = new Set(svg.match(/#[0-9a-f]{6}/gi));
+    expect(colours).toEqual(new Set([BRAND.charcoal, BRAND.ash])); // monochrome
   });
 
   it("uses a full-bleed square and shrinks the glyphs for maskable icons", () => {

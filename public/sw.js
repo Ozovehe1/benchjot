@@ -1,7 +1,7 @@
 // Service worker: offline shell + cache for the heavy runtimes.
 // - Pyodide (CDN), Ruff wasm (/vendor), app assets (/_next/static), icons: cache-first.
 // - Runner workers and page navigations: network-first, falling back to the last copy, then /offline.html.
-const VERSION = "bj-2"; // bump when shell files (icons) change
+const VERSION = "bj-3"; // bump when shell files (icons) change
 const SHELL = `${VERSION}-shell`;
 const PAGES = "bj-pages"; // cleared on sign-out
 const RUNTIME = "bj-runtime"; // kept across versions: Pyodide and Ruff are large
