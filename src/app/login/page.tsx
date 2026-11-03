@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { z } from "zod";
 import { APP_NAME } from "@/config/app";
 import { supabase } from "@/lib/supabase/client";
@@ -20,7 +21,7 @@ const field = "block h-12 w-full border-b border-line outline-none focus:border-
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(params.get("mode") === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +81,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Column className="max-w-[400px] pt-[18vh]">
-      <h1 className="font-medium">{APP_NAME}</h1>
+      <h1 className="font-medium">
+        <Link href="/">{APP_NAME}</Link>
+      </h1>
       <Suspense>
         <LoginForm />
       </Suspense>

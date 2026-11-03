@@ -5,7 +5,7 @@
     OWNER_EMAIL=... OWNER_PASSWORD=... INTRUDER_EMAIL=... INTRUDER_PASSWORD=... \
         python scripts/rls_check.py
 
-The owner must already have at least one entry with a code snippet.
+The owner must already have at least one project, and an entry with a code snippet.
 The intruder account is created if it doesn't exist.
 """
 import os
@@ -15,7 +15,7 @@ import requests
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 ANON = os.environ["SUPABASE_ANON_KEY"]
-TABLES = ["entries", "snippets"]
+TABLES = ["projects", "entries", "snippets"]
 failures = []
 
 
@@ -46,6 +46,7 @@ for t in TABLES:
     check(len(mine[t]) > 0, f"owner can read own {t} ({len(mine[t])})")
 entry_id = mine["entries"][0]["id"]
 snip_id = mine["snippets"][0]["id"]
+proj_id = mine["projects"][0]["id"]
 
 for t in TABLES:
     check(rest("GET", f"{t}?select=id", intruder).json() == [], f"intruder sees no {t}")
@@ -60,6 +61,15 @@ r = rest("DELETE", f"entries?id=eq.{entry_id}", intruder)
 check(r.ok and r.json() == [], "intruder can't delete owner's entry")
 r = rest("POST", "snippets", intruder, json={"entry_id": entry_id, "content": "x", "language": "python"})
 check(not r.ok, f"intruder can't attach a snippet to owner's entry ({r.status_code})")
+r = rest("PATCH", f"projects?id=eq.{proj_id}", intruder, json={"name": "pwned"})
+check(r.ok and r.json() == [], "intruder can't rename owner's project")
+r = rest("DELETE", f"projects?id=eq.{proj_id}", intruder)
+check(r.ok and r.json() == [], "intruder can't delete owner's project")
+own = rest("POST", "entries", intruder, json={"title": "mine"}).json()[0]["id"]
+r = rest("PATCH", f"entries?id=eq.{own}", intruder, json={"project_id": proj_id})
+check(not r.ok, f"intruder can't file a note into owner's project ({r.status_code})")
+r = rest("POST", "rpc/search_entries", intruder, json={"terms": [], "p_project": proj_id})
+check(r.ok and r.json() == [], "search within owner's project returns nothing")
 owner_uid = rest("GET", f"entries?select=user_id&id=eq.{entry_id}", owner).json()[0]["user_id"]
 r = rest("POST", "entries", intruder, json={"title": "spoof", "user_id": owner_uid})
 check(not r.ok, f"intruder can't insert rows as the owner ({r.status_code})")
@@ -69,6 +79,8 @@ r = rest("POST", "rpc/search_entries", None, json={"terms": []})
 check(not r.ok or r.json() == [], f"anonymous can't call search ({r.status_code})")
 still = rest("GET", f"entries?select=title&id=eq.{entry_id}", owner).json()
 check(still and still[0]["title"] != "pwned", "owner's data unchanged")
+pname = rest("GET", f"projects?select=name&id=eq.{proj_id}", owner).json()
+check(pname and pname[0]["name"] != "pwned", "owner's project unchanged")
 check(len(rest("GET", "snippets?select=id", owner).json()) == len(mine["snippets"]), "owner's snippets intact")
 
 print("RLS OK" if not failures else f"RLS FAILURES: {len(failures)}")

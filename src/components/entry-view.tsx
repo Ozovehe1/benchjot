@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAutosave, useSaveStatus } from "@/lib/autosave";
-import { createSnippet, deleteEntry, updateEntry, useEntry, useSnippets } from "@/lib/data";
+import { createEmptySnippet, createSnippets, deleteEntry, updateEntry, useEntry, useProjects, useSnippets } from "@/lib/data";
 import type { Entry } from "@/lib/schemas";
 import { useAutosize } from "@/lib/use-autosize";
+import { FilePicker } from "./file-picker";
 import { Markdown } from "./markdown";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
@@ -12,7 +13,9 @@ import { Column, TextButton, TextLink, TopBar } from "./ui";
 
 export function EntryView({ id }: { id: string }) {
   const { data: entry, error, isLoading } = useEntry(id);
-  const back = <TextLink href="/">All notes</TextLink>;
+  const { data: projects } = useProjects();
+  const project = projects?.find((p) => p.id === entry?.project_id);
+  const back = project ? <TextLink href={`/p/${project.id}`}>{project.name}</TextLink> : <TextLink href="/">All notes</TextLink>;
 
   if (isLoading) return <Column><TopBar left={back} /></Column>;
   if (error || !entry) {
@@ -32,6 +35,22 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   const [title, setTitle] = useState(entry.title);
   const [notes, setNotes] = useState(entry.notes);
   const [preview, setPreview] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState(entry.project_id ?? "");
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const { data: projects } = useProjects();
+
+  async function move(next: string) {
+    const previous = projectId;
+    setProjectId(next);
+    setMoveError(null);
+    try {
+      await updateEntry(entry.id, { project_id: next || null });
+    } catch (e) {
+      setProjectId(previous);
+      setMoveError(e instanceof Error ? e.message : "Could not move the note.");
+    }
+  }
   const titleRef = useAutosize(title);
   const notesRef = useAutosize(notes);
   const { data: snippets } = useSnippets(entry.id);
@@ -91,6 +110,24 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         className="mt-6 block w-full resize-none overflow-hidden text-xl font-semibold leading-snug outline-none"
       />
 
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted">
+        <label htmlFor="project">Project</label>
+        <select
+          id="project"
+          value={projectId}
+          onChange={(e) => void move(e.target.value)}
+          className="min-h-9 max-w-[60vw] cursor-pointer appearance-none truncate bg-transparent outline-none hover:text-fg"
+        >
+          <option value="">None</option>
+          {projects?.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        {moveError && <span role="alert" className="text-fg">{moveError}</span>}
+      </div>
+
       {preview ? (
         <div className="mt-4 min-h-24">{notes.trim() ? <Markdown>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
       ) : (
@@ -106,9 +143,15 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
 
       <section aria-label="Code" className="mt-10">
         {snippets?.map((s, i) => <SnippetBlock key={s.id} snippet={s} index={i} />)}
-        <div className="border-t border-line">
-          <TextButton onClick={() => void createSnippet(entry.id, snippets?.length ?? 0)}>Add code</TextButton>
+        <div className="flex gap-6 border-t border-line">
+          <TextButton onClick={() => void createEmptySnippet(entry.id, snippets?.length ?? 0)}>Add code</TextButton>
+          <FilePicker label="Upload file" onError={setUploadError} onFiles={(files) => createSnippets(entry.id, snippets?.length ?? 0, files)} />
         </div>
+        {uploadError && (
+          <p role="alert" className="text-sm">
+            {uploadError}
+          </p>
+        )}
       </section>
 
       <div className="mt-12">

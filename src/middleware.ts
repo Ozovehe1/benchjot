@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/login"];
+// Signed-out visitors may see these; signed-in users are sent home from /login.
+const AUTH_PATHS = ["/login"];
+const LANDING = "/";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -21,15 +23,15 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await sb.auth.getUser();
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  const isAuthPage = AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
-  if (!user && !isPublic) {
+  if (!user && !isAuthPage && path !== LANDING) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
+    url.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
-  if (user && isPublic) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

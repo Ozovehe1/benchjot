@@ -2,7 +2,7 @@
 
 Live: https://benchjot.vercel.app
 
-Notes and code. Each note has a title, a Markdown body and any number of code blocks.
+Notes and code. Each note has a title, a Markdown body and any number of code blocks (typed or uploaded); notes can be filed in plain projects (folders).
 
 The product name is set in one place: `src/config/app.ts` (`APP_NAME`).
 
@@ -19,7 +19,7 @@ npm run check                # typecheck + lint + tests
 
 ## Database
 
-Two tables, `entries` and `snippets`, both owner-only via Row Level Security (`auth.uid() = user_id`).
+Three tables, `projects`, `entries` and `snippets`, all owner-only via Row Level Security (`auth.uid() = user_id`).
 Migrations live in `supabase/migrations/` and are applied through the Supabase Management API:
 
 ```bash
