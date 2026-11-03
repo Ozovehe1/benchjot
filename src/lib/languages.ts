@@ -53,6 +53,16 @@ export const LANGUAGES = [
     keys: [";", "{", "}", "::", "<", ">", "*", "&", "#"],
   },
   {
+    id: "rust", label: "Rust", ext: ["rs"], indent: SP4, comment: "//",
+    keywords: ["as", "async", "await", "break", "const", "continue", "crate", "else", "enum", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where", "while", "Vec", "String", "Option", "Result", "Some", "None", "Ok", "Err", "println"],
+    keys: [";", "{", "}", "::", "&", "->", "!", "<", ">"],
+  },
+  {
+    id: "java", label: "Java", ext: ["java"], indent: SP4, comment: "//",
+    keywords: ["abstract", "boolean", "break", "case", "catch", "char", "class", "continue", "default", "do", "double", "else", "enum", "extends", "final", "finally", "float", "for", "if", "implements", "import", "instanceof", "int", "interface", "long", "new", "null", "package", "private", "protected", "public", "return", "static", "String", "super", "switch", "this", "throw", "throws", "true", "false", "try", "var", "void", "while", "System", "List", "Map"],
+    keys: [";", "{", "}", "(", ")", ".", "<", ">", "\""],
+  },
+  {
     id: "matlab", label: "MATLAB", ext: ["m"], indent: SP4, comment: "%",
     keywords: ["break", "case", "catch", "continue", "else", "elseif", "end", "for", "function", "global", "if", "otherwise", "persistent", "return", "switch", "try", "while", "zeros", "ones", "size", "length", "plot", "disp", "fprintf"],
     keys: ["%", ";", "(", ")", "[", "]", ".*", "'"],

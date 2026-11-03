@@ -9,8 +9,8 @@ import { serverSupabase } from "@/lib/supabase/server";
 const SAMPLE = [
   [["", "acc = {"], ["num", "0.1"], ["", ": ["], ["num", "91.8"], ["", ", "], ["num", "92.4"], ["", ", "], ["num", "92.1"], ["", "],"]],
   [["", "       "], ["num", "0.3"], ["", ": ["], ["num", "90.9"], ["", ", "], ["num", "90.7"], ["", ", "], ["num", "91.1"], ["", "]}"]],
-  [["kw", "for"], ["", " p, runs "], ["kw", "in"], ["", " acc.items():"]],
-  [["", "    print(p, round(sum(runs) / len(runs), "], ["num", "1"], ["", "))"]],
+  [["kw", "for"], ["", " p, r "], ["kw", "in"], ["", " acc.items():"]],
+  [["", "    print(p, round(sum(r) / len(r), "], ["num", "1"], ["", "))"]],
 ] as const;
 const SAMPLE_OUTPUT = "0.1 92.1\n0.3 90.9";
 const tone = { kw: "text-[var(--hl-keyword)] font-medium", num: "text-[var(--hl-number)]", str: "text-[var(--hl-string)]", "": "" } as const;

@@ -16,6 +16,8 @@ const GRAMMARS: Record<LanguageId, () => Promise<Extension>> = {
   go: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/go")).go as StreamParser<unknown>),
   c: async () => (await import("@codemirror/lang-cpp")).cpp(),
   cpp: async () => (await import("@codemirror/lang-cpp")).cpp(),
+  rust: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/rust")).rust as StreamParser<unknown>),
+  java: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/clike")).java as StreamParser<unknown>),
   matlab: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/octave")).octave as StreamParser<unknown>),
   r: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/r")).r as StreamParser<unknown>),
   julia: () => legacy(async () => (await import("@codemirror/legacy-modes/mode/julia")).julia as StreamParser<unknown>),

@@ -6,6 +6,7 @@ import type { z } from "zod";
 import { supabase } from "./supabase/client";
 import { searchTerms } from "./search";
 import { DEFAULT_LANGUAGE } from "./languages";
+import { asPlan, type Plan } from "./plan";
 import {
   entryPatch,
   firstIssue,
@@ -48,6 +49,15 @@ function refreshLists() {
 }
 
 // ------------------------------------------------------------------ projects
+/** The signed-in user's plan, for showing the right controls (the server enforces it). */
+export function usePlan(): Plan | undefined {
+  const { data } = useSWR("plan", async () => {
+    const res = await supabase().from("profiles").select("plan").maybeSingle();
+    return asPlan(res.data?.plan);
+  });
+  return data;
+}
+
 export function useProjects() {
   return useSWR(keys.projects, async () => check(await supabase().from("projects").select("id, name").order("name")) as Project[]);
 }

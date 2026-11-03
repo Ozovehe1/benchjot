@@ -2,11 +2,13 @@
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAutosave } from "@/lib/autosave";
-import { deleteSnippet, updateSnippet } from "@/lib/data";
+import { deleteSnippet, updateSnippet, usePlan } from "@/lib/data";
 import { detectLanguage } from "@/lib/detect-language";
 import { downloadName, isLanguageId, LANGUAGES, type LanguageId } from "@/lib/languages";
 import type { Snippet } from "@/lib/schemas";
+import { runsOnServer } from "@/lib/run/server-languages";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
+import { FixDiff } from "./fix-diff";
 import { RunOutput, type OutputChunk } from "./run-output";
 import { Button, TextButton } from "./ui";
 
@@ -36,11 +38,17 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
   const [status, setStatus] = useState("");
   const [output, setOutput] = useState<OutputChunk[] | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
+  const [fix, setFix] = useState<{ before: string; code: string; summary: string } | null>(null);
+  const [fixing, setFixing] = useState(false);
   const handle = useRef<RunHandle | null>(null);
+  const plan = usePlan();
   const { flush } = useAutosave({ language, content }, (v) => updateSnippet(snippet.id, v), {
     baseline: { language: initial, content: snippet.content },
   });
   const runnable = runsInBrowser(language);
+  const serverable = runsOnServer(language);
+  const pro = plan === "pro";
+  const lastError = result?.outcome === "error" ? result.error?.text ?? "" : "";
 
   function edit(next: string) {
     setContent(next);
@@ -53,27 +61,50 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
     setFixable(0);
   }
 
-  async function run() {
-    if (!runsInBrowser(language)) return;
-    const { runCode } = await import("@/lib/run/runner");
+  /** Runs in the browser (free) or on the server (Pro); both report through RunOutput. */
+  async function run(where: "browser" | "server" = "browser") {
+    const lang = language;
+    const inBrowser = where === "browser" && runsInBrowser(lang);
+    if (!inBrowser && !(where === "server" && serverable && pro)) return;
     let size = 0;
+    const onOutput = (stream: Stream, text: string) => {
+      if (size > MAX_OUTPUT) return;
+      size += text.length;
+      setOutput((o) => [...(o ?? []), { stream, text: size > MAX_OUTPUT ? text + "\n[output truncated]\n" : text }]);
+    };
     setOutput([]);
     setResult(null);
+    setFix(null);
     setRunning(true);
-    const h = runCode(language, content, {
-      onStatus: setStatus,
-      onOutput: (stream: Stream, text: string) => {
-        if (size > MAX_OUTPUT) return;
-        size += text.length;
-        setOutput((o) => [...(o ?? []), { stream, text: size > MAX_OUTPUT ? text + "\n[output truncated]\n" : text }]);
-      },
-    });
+    const h =
+      inBrowser && runsInBrowser(lang)
+        ? (await import("@/lib/run/runner")).runCode(lang, content, { onStatus: setStatus, onOutput })
+        : (await import("@/lib/run/server-client")).runOnServer(lang, content, onOutput, setStatus);
     handle.current = h;
     const r = await h.done;
     handle.current = null;
     setStatus("");
     setResult(r);
     setRunning(false);
+  }
+
+  async function proposeFix() {
+    setFixing(true);
+    try {
+      const { requestFix } = await import("@/lib/run/server-client");
+      const answer = await requestFix(language, content, lastError);
+      setFix({ before: content, code: answer.code, summary: answer.summary });
+    } catch (e) {
+      setFix({ before: content, code: content, summary: (e as Error).message });
+    } finally {
+      setFixing(false);
+    }
+  }
+
+  function acceptFix() {
+    if (!fix) return;
+    setContent(fix.code);
+    setFix(null);
   }
 
   async function autofix() {
@@ -112,16 +143,21 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
             ))}
           </select>
         </div>
-        {runnable &&
-          (running ? (
-            <Button onClick={() => handle.current?.stop()} variant="neutral">
-              Stop
-            </Button>
-          ) : (
-            <Button onClick={run}>
-              Run
-            </Button>
-          ))}
+        {running ? (
+          <Button onClick={() => handle.current?.stop()} variant="neutral">
+            Stop
+          </Button>
+        ) : (
+          <div className="flex items-center gap-4">
+            {serverable && pro && (
+              <TextButton onClick={() => run("server")} strong={!runnable}>
+                Run on server
+              </TextButton>
+            )}
+            {serverable && plan === "free" && !runnable && <span className="text-xs text-faint">Server runs · Pro</span>}
+            {runnable && <Button onClick={() => run("browser")}>Run</Button>}
+          </div>
+        )}
       </div>
 
       <CodeEditor
@@ -134,8 +170,10 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
       />
 
       {output && (
-        <RunOutput chunks={output} status={status} running={running} result={result} onClear={() => (setOutput(null), setResult(null))} />
+        <RunOutput chunks={output} status={status} running={running} result={result} onClear={() => (setOutput(null), setResult(null), setFix(null))} />
       )}
+
+      {fix && <FixDiff before={fix.before} after={fix.code} summary={fix.summary} onAccept={acceptFix} onReject={() => setFix(null)} />}
 
       <div className="flex gap-5 pb-1">
         <TextButton onClick={copy}>
@@ -144,6 +182,11 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
         <TextButton onClick={() => download(downloadName(snippet.filename, language, index), content)}>
           Download
         </TextButton>
+        {lastError && !running && !fix && (
+          <TextButton onClick={proposeFix} disabled={fixing}>
+            {fixing ? "Fixing…" : "Fix"}
+          </TextButton>
+        )}
         {language === "python" && fixable > 0 && (
           <TextButton onClick={autofix}>
             Autofix

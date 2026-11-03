@@ -25,7 +25,8 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAuthPage = AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
-  if (!user && !isAuthPage && path !== LANDING) {
+  // API routes answer 401 themselves instead of redirecting.
+  if (!user && !isAuthPage && path !== LANDING && !path.startsWith("/api/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
