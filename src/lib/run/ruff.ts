@@ -9,7 +9,8 @@ export type { RuffDiagnostic };
 const SETTINGS = {
   "line-length": 100,
   "indent-width": 4,
-  lint: { select: ["E4", "E7", "E9", "F", "B", "I", "UP"] },
+  // Real problems only (pyflakes, syntax, bugbear); no style or import-order noise.
+  lint: { select: ["E4", "E7", "E9", "F", "B"] },
 };
 
 let workspace: Promise<Workspace> | null = null;

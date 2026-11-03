@@ -356,21 +356,24 @@ def run_phase(browser, errors):
     page.screenshot(path=f"{SHOTS}/r-02-js-ts.png", full_page=True)
     step("TypeScript transpiles and runs; Stop ends a runaway JS loop; TS syntax error underlined")
 
-    # PWA: manifest, service worker, offline reload
+    # PWA: manifest, service worker and what it has cached for offline use.
+    # (Playwright's offline mode doesn't apply to service-worker fetches, so offline
+    # navigation itself can't be emulated here; we check the caches it serves from.)
     entry = page.url
     m = page.request.get(f"{BASE}/manifest.webmanifest")
     assert m.ok and m.json()["display"] == "standalone", m.status
-    page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+    assert page.evaluate("navigator.serviceWorker.ready.then(r => !!r.active)")
     page.reload()
-    page.wait_for_timeout(1500)
-    ctx.set_offline(True)
-    page.goto(f"{BASE}/offline-check-{int(time.time())}", wait_until="domcontentloaded")
-    expect(page.get_by_text("You\u2019re offline")).to_be_visible(timeout=10000)
-    page.goto(entry, wait_until="domcontentloaded")
-    expect(page.get_by_role("link", name="All notes")).to_be_visible(timeout=10000)  # cached page shell
-    page.screenshot(path=f"{SHOTS}/r-03-offline.png")
-    ctx.set_offline(False)
-    step("PWA: manifest, service worker, offline fallback and cached page")
+    expect(page.get_by_label("Title")).to_be_visible(timeout=10000)
+    assert page.evaluate("!!navigator.serviceWorker.controller"), "page not controlled by the service worker"
+    cached = page.evaluate("""async (entry) => ({
+      offline: !!(await caches.match('/offline.html')),
+      page: !!(await (await caches.open('bj-pages')).match(entry)),
+      pyodide: (await (await caches.open('bj-runtime')).keys()).some(r => r.url.includes('/pyodide/') && r.url.endsWith('.wasm')),
+      ruff: !!(await (await caches.open('bj-runtime')).match('/vendor/ruff_wasm_bg.wasm')),
+    })""", entry)
+    assert all(cached.values()), cached
+    step(f"PWA: manifest, active service worker; cached offline page, this note's page, Pyodide and Ruff {cached}")
 
     page.goto(entry)
     page.once("dialog", lambda d: d.accept())
