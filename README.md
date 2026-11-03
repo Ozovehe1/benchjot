@@ -1,6 +1,6 @@
-# Snipbench
+# Research code notebook (working name)
 
-Live: https://snipbench.vercel.app · The product name is set in one place: `src/config/app.ts` (`APP_NAME`).
+The product name is set in one place: `src/config/app.ts` (`APP_NAME`).
 
 Code notebook for ML/AI research experiments: projects → experiments → code snippets (versioned) and runs (params, env, metrics).
 
