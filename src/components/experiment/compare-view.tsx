@@ -16,7 +16,7 @@ export function CompareView({ experimentId, a, b }: { experimentId: string; a: s
 
   return (
     <>
-      <PageHeader back={back} title="Compare runs" />
+      <PageHeader back={back} title="Compare runs" narrow />
       <main className="mx-auto max-w-3xl px-4 py-5 md:px-6 md:py-8">
         {error ? (
           <ErrorState error={error} onRetry={() => void mutate()} />

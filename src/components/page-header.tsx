@@ -9,17 +9,20 @@ export function PageHeader({
   back,
   actions,
   showSave,
+  narrow,
   children,
 }: {
   title?: React.ReactNode;
   back?: string;
   actions?: React.ReactNode;
   showSave?: boolean;
+  /** Match a max-w-3xl content column (detail pages). */
+  narrow?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/85 backdrop-blur-lg">
-      <div className="mx-auto flex h-14 max-w-5xl items-center gap-1 px-2 md:h-16 md:px-6">
+      <div className={cn("mx-auto flex h-14 items-center gap-1 px-2 md:h-16 md:px-6", narrow ? "max-w-3xl" : "max-w-5xl")}>
         {back && (
           <Link
             href={back}

@@ -137,6 +137,7 @@ export function ExperimentView({ id }: { id: string }) {
       <PageHeader
         back={exp.projects ? `/projects/${exp.projects.id}` : "/"}
         showSave
+        narrow
         title={
           <div className="min-w-0">
             <p className="truncate text-[15px] font-semibold leading-tight md:text-base">{exp.title}</p>

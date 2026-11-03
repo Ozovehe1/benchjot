@@ -121,6 +121,9 @@
   font-size: 15px;
   overflow-wrap: anywhere;
 }
+.prose-notes > :first-child {
+  margin-top: 0;
+}
 .prose-notes > * + * {
   margin-top: 0.85em;
 }
