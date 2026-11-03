@@ -1,4 +1,4 @@
-// Single source of truth for the code languages Benchlog understands.
+// Single source of truth for the code languages Trialbook understands.
 // Editor modes live in cm-languages.ts and are keyed by the same ids.
 
 export const LANGUAGES = [

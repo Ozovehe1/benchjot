@@ -1,4 +1,4 @@
-# Benchlog
+# Trialbook
 
 Code notebook for ML/AI research experiments: projects → experiments → code snippets (versioned) and runs (params, env, metrics).
 

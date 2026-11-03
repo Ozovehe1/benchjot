@@ -1,4 +1,4 @@
--- Benchlog schema: projects > experiments > (snippets > versions, runs).
+-- Trialbook schema: projects > experiments > (snippets > versions, runs).
 -- Every table is owner-only via RLS (auth.uid() = user_id).
 -- Child rows carry user_id too and reference their parent by (id, user_id),
 -- so a row can never point at another user's parent.
