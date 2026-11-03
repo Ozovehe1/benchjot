@@ -1,6 +1,7 @@
 // Validation contracts (zod) and row types. One authoritative place for both.
 import { z } from "zod";
 import { LANGUAGE_IDS } from "./languages";
+import { OUTCOMES, type Outcome } from "./outcome";
 import { MAX_SAVED_STREAM } from "./run/last-run";
 
 export const entryPatch = z
@@ -8,6 +9,7 @@ export const entryPatch = z
     title: z.string().max(200, "Title is over 200 characters"),
     notes: z.string().max(200_000, "Note is over 200k characters"),
     project_id: z.uuid().nullable(),
+    outcome: z.enum(OUTCOMES).nullable(),
   })
   .partial();
 
@@ -59,11 +61,12 @@ export interface Entry {
   project_id: string | null;
   title: string;
   notes: string;
+  outcome: Outcome | null;
   created_at: string;
   updated_at: string;
 }
 
-export type EntryListItem = Pick<Entry, "id" | "title" | "updated_at">;
+export type EntryListItem = Pick<Entry, "id" | "title" | "outcome" | "updated_at">;
 
 export interface Snippet {
   id: string;

@@ -71,3 +71,43 @@ export function Button({ className, variant = "primary", type = "button", ...res
 export function ButtonLink({ className, variant = "primary", ...rest }: React.ComponentProps<typeof Link> & Variant) {
   return <Link className={cn(filledBase, filledTone[variant], className)} {...rest} />;
 }
+
+/** A plain text segmented control (one choice of a few): the chosen one reads in full text colour. */
+export function Segmented<T>({
+  label,
+  options,
+  value,
+  onChange,
+  className,
+}: {
+  label: string;
+  options: readonly { value: T; label: string; name?: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  className?: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className={cn("flex items-center gap-4", className)}>
+      {options.map((o) => (
+        <TextButton
+          key={String(o.value)}
+          role="radio"
+          aria-checked={o.value === value}
+          aria-label={o.name ?? o.label}
+          strong={o.value === value}
+          onClick={() => o.value !== value && onChange(o.value)}
+          className="text-xs"
+        >
+          {o.label}
+        </TextButton>
+      ))}
+    </div>
+  );
+}
+
+const dotTone = { success: "bg-ok", failed: "bg-fail" } as const;
+
+/** The list's tiny outcome dot (ash = successful, muted red = failed); named for screen readers. */
+export function OutcomeDot({ outcome, name }: { outcome: keyof typeof dotTone; name: string }) {
+  return <span role="img" aria-label={name} title={name} className={cn("inline-block size-1.5 shrink-0 rounded-full", dotTone[outcome])} />;
+}

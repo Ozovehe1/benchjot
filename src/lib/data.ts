@@ -7,6 +7,7 @@ import { supabase } from "./supabase/client";
 import { searchTerms } from "./search";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { asPlan, type Plan } from "./plan";
+import { outcomeParam, type OutcomeFilter } from "./outcome";
 import {
   entryPatch,
   firstIssue,
@@ -38,7 +39,7 @@ function validate<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
 }
 
 const keys = {
-  entries: (q: string, scope: EntryScope) => ["entries", q, scope.projectId ?? "", scope.unfiled ? 1 : 0] as const,
+  entries: (q: string, scope: EntryScope) => ["entries", q, scope.projectId ?? "", scope.unfiled ? 1 : 0, scope.outcome ?? "all"] as const,
   projects: ["projects"] as const,
   entry: (id: string) => ["entry", id] as const,
   snippets: (entryId: string) => ["snippets", entryId] as const,
@@ -83,10 +84,11 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 // ------------------------------------------------------------------ entries
-/** Which entries a list shows: one project's, only unfiled ones, or (default) all. */
+/** Which entries a list shows: one project's, only unfiled ones, or (default) all; optionally one outcome. */
 export interface EntryScope {
   projectId?: string;
   unfiled?: boolean;
+  outcome?: OutcomeFilter;
 }
 
 export function useEntries(query: string, scope: EntryScope = {}) {
@@ -96,8 +98,13 @@ export function useEntries(query: string, scope: EntryScope = {}) {
     async () =>
       check(
         await supabase()
-          .rpc("search_entries", { terms, p_project: scope.projectId ?? null, p_unfiled: !!scope.unfiled })
-          .select("id, title, updated_at"),
+          .rpc("search_entries", {
+            terms,
+            p_project: scope.projectId ?? null,
+            p_unfiled: !!scope.unfiled,
+            p_outcome: outcomeParam(scope.outcome ?? "all"),
+          })
+          .select("id, title, outcome, updated_at"),
       ) as EntryListItem[],
     { keepPreviousData: true },
   );

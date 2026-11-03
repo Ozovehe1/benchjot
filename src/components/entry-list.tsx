@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createEntry, createProject, createSnippets, deleteProject, renameProject, useEntries, useProjects } from "@/lib/data";
 import { displayTitle, listDate } from "@/lib/format";
+import { OUTCOME_FILTER_LABEL, OUTCOME_FILTERS, OUTCOME_LABEL, type OutcomeFilter } from "@/lib/outcome";
 import type { Project } from "@/lib/schemas";
 import type { CodeFile } from "@/lib/upload";
 import { FilePicker } from "./file-picker";
-import { Button, Column, TextButton, TextLink, TopBar } from "./ui";
+import { Button, Column, OutcomeDot, Segmented, TextButton, TextLink, TopBar } from "./ui";
 
 const row = "flex items-baseline justify-between gap-6 py-4";
 
@@ -20,8 +21,10 @@ export function EntryList({ project }: { project?: Project }) {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const searching = query.trim() !== "";
-  const scope = project ? { projectId: project.id } : searching ? {} : { unfiled: true };
+  const [outcome, setOutcome] = useState<OutcomeFilter>("all");
+  // Searching or filtering on Home looks across every note, not just the unfiled ones.
+  const searching = query.trim() !== "" || outcome !== "all";
+  const scope = { ...(project ? { projectId: project.id } : searching ? {} : { unfiled: true }), outcome };
   const { data: entries, error: loadError } = useEntries(query, scope);
   const { data: projects } = useProjects();
   const projectId = project?.id ?? null;
@@ -105,6 +108,13 @@ export function EntryList({ project }: { project?: Project }) {
         aria-label="Search"
         className="mt-4 h-12 w-full border-b border-line outline-none focus:border-faint"
       />
+      <Segmented
+        label="Filter by outcome"
+        options={OUTCOME_FILTERS.map((f) => ({ value: f, label: OUTCOME_FILTER_LABEL[f] }))}
+        value={outcome}
+        onChange={setOutcome}
+        className="text-muted"
+      />
       {(error || loadError) && (
         <p role="alert" className="py-3 text-sm">
           {error ?? "Could not load notes."}
@@ -140,7 +150,10 @@ export function EntryList({ project }: { project?: Project }) {
           <li key={e.id}>
             <Link href={`/n/${e.id}`} className={row}>
               <span className={e.title.trim() ? "truncate" : "truncate text-muted"}>{displayTitle(e.title)}</span>
-              <span className="shrink-0 text-xs tabular-nums text-faint">{listDate(e.updated_at)}</span>
+              <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-faint">
+                {e.outcome && <OutcomeDot outcome={e.outcome} name={OUTCOME_LABEL[e.outcome]} />}
+                {listDate(e.updated_at)}
+              </span>
             </Link>
           </li>
         ))}

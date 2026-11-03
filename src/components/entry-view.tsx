@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAutosave, useSaveStatus } from "@/lib/autosave";
 import { createEmptySnippet, createSnippets, deleteEntry, updateEntry, useEntry, useProjects, useSnippets } from "@/lib/data";
+import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import type { Entry } from "@/lib/schemas";
 import { useAutosize } from "@/lib/use-autosize";
 import { FilePicker } from "./file-picker";
 import { Markdown } from "./markdown";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
-import { Column, TextButton, TextLink, TopBar } from "./ui";
+import { Column, Segmented, TextButton, TextLink, TopBar } from "./ui";
 
 /** Placeholder and accessible name of the note body. */
 const NOTE_LABEL = "Experiment note";
@@ -41,6 +42,20 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState(entry.project_id ?? "");
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<Outcome | null>(entry.outcome ?? null);
+  const [outcomeError, setOutcomeError] = useState<string | null>(null);
+
+  async function mark(next: Outcome | null) {
+    const previous = outcome;
+    setOutcome(next);
+    setOutcomeError(null);
+    try {
+      await updateEntry(entry.id, { outcome: next });
+    } catch (e) {
+      setOutcome(previous);
+      setOutcomeError(e instanceof Error ? e.message : "Could not save the outcome.");
+    }
+  }
   const { data: projects } = useProjects();
 
   async function move(next: string) {
@@ -131,6 +146,12 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         {moveError && <span role="alert" className="text-fg">{moveError}</span>}
       </div>
 
+      <div className="flex items-center gap-4 text-xs text-muted">
+        <span>Outcome</span>
+        <Segmented label="Outcome" options={OUTCOME_CHOICES} value={outcome} onChange={(v) => void mark(v)} />
+        {outcomeError && <span role="alert" className="text-fg">{outcomeError}</span>}
+      </div>
+
       {preview ? (
         <div className="mt-4 min-h-24">{notes.trim() ? <Markdown>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
       ) : (
@@ -145,7 +166,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       )}
 
       <section aria-label="Code" className="mt-10">
-        {snippets?.map((s, i) => <SnippetBlock key={s.id} snippet={s} index={i} />)}
+        {snippets?.map((s, i) => <SnippetBlock key={s.id} snippet={s} index={i} outcome={outcome} />)}
         <div className="flex gap-6 border-t border-line">
           <TextButton onClick={() => void createEmptySnippet(entry.id, snippets?.length ?? 0)}>Add code</TextButton>
           <FilePicker label="Upload file" onError={setUploadError} onFiles={(files) => createSnippets(entry.id, snippets?.length ?? 0, files)} />

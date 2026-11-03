@@ -5,6 +5,7 @@ import { useAutosave } from "@/lib/autosave";
 import { deleteSnippet, saveLastRun, updateSnippet, usePlan } from "@/lib/data";
 import { detectLanguage } from "@/lib/detect-language";
 import { downloadName, isLanguageId, LANGUAGES, type LanguageId } from "@/lib/languages";
+import type { Outcome } from "@/lib/outcome";
 import type { Snippet } from "@/lib/schemas";
 import { codeHash, fromLastRun, toLastRun, type Chunk } from "@/lib/run/last-run";
 import { runsOnServer } from "@/lib/run/server-languages";
@@ -27,7 +28,8 @@ function download(name: string, content: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: number }) {
+/** `outcome` is the note's, sent to Fix as context. */
+export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snippet; index: number; outcome?: Outcome | null }) {
   const initial: LanguageId = isLanguageId(snippet.language) ? snippet.language : "text";
   const [language, setLanguage] = useState<LanguageId>(initial);
   const [content, setContent] = useState(snippet.content);
@@ -119,7 +121,7 @@ export function SnippetBlock({ snippet, index }: { snippet: Snippet; index: numb
     setFixing(true);
     try {
       const { requestFix } = await import("@/lib/run/server-client");
-      const answer = await requestFix(language, content, lastError);
+      const answer = await requestFix(language, content, lastError, outcome);
       setFix({ before: content, code: answer.code, summary: answer.summary });
     } catch (e) {
       setFix({ before: content, code: content, summary: (e as Error).message });

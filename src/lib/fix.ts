@@ -1,6 +1,7 @@
 // AI Fix, the pure parts: the prompt sent to Groq, reading its answer, and the
 // minimal line diff the user accepts or rejects. No network here.
 import { z } from "zod";
+import { OUTCOMES, outcomeContext } from "./outcome";
 
 export const FIX_LIMITS = { maxCodeChars: 50_000, maxErrorChars: 8_000 } as const;
 
@@ -8,6 +9,8 @@ export const fixRequest = z.object({
   language: z.string().min(1).max(40),
   code: z.string().min(1, "Nothing to fix").max(FIX_LIMITS.maxCodeChars, "Code is too long to fix"),
   error: z.string().min(1, "Run it first: Fix needs the error").max(FIX_LIMITS.maxErrorChars * 4),
+  /** The note's outcome, as context. */
+  outcome: z.enum(OUTCOMES).nullable().optional(),
 });
 export type FixRequest = z.infer<typeof fixRequest>;
 
@@ -25,11 +28,12 @@ const SYSTEM = [
 ].join(" ");
 
 /** Chat messages for the model. Long errors keep their tail (where the cause is). */
-export function fixMessages({ language, code, error }: FixRequest) {
+export function fixMessages({ language, code, error, outcome }: FixRequest) {
   const err = error.length > FIX_LIMITS.maxErrorChars ? error.slice(-FIX_LIMITS.maxErrorChars) : error;
+  const context = outcomeContext(outcome);
   return [
     { role: "system" as const, content: SYSTEM },
-    { role: "user" as const, content: `Language: ${language}\n\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nError:\n\`\`\`\n${err}\n\`\`\`` },
+    { role: "user" as const, content: `Language: ${language}\n${context ? `${context}\n` : ""}\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nError:\n\`\`\`\n${err}\n\`\`\`` },
   ];
 }
 

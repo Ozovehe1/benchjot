@@ -2,6 +2,7 @@
 // Browser side of server runs and Fix: call the API routes, map answers to the
 // same RunResult the in-browser runners give, so RunOutput shows both alike.
 import type { FixAnswer } from "../fix";
+import type { Outcome } from "../outcome";
 import type { ServerRunResponse } from "./server-languages";
 import type { RunHandle, RunResult, Stream } from "./types";
 
@@ -36,6 +37,6 @@ export function runOnServer(language: string, code: string, onOutput: (stream: S
   return { done, stop: () => abort.abort() };
 }
 
-export function requestFix(language: string, code: string, error: string): Promise<FixAnswer> {
-  return post<FixAnswer>("/api/fix", { language, code, error });
+export function requestFix(language: string, code: string, error: string, outcome: Outcome | null = null): Promise<FixAnswer> {
+  return post<FixAnswer>("/api/fix", { language, code, error, outcome });
 }
