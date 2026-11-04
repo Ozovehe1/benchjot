@@ -21,7 +21,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export function Settings({ email }: { email: string }) {
+export function Settings({ email, username }: { email: string; username: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -42,7 +42,10 @@ export function Settings({ email }: { email: string }) {
       <TopBar left={<TextLink href="/">All notes</TextLink>} />
       <h1 className="mt-2 mb-4 text-xl font-semibold">Settings</h1>
       <div className="border-t border-line">
-        <Row label="Account">
+        <Row label="Username">
+          <span className="truncate">@{username}</span>
+        </Row>
+        <Row label="Email">
           <span className="truncate">{email}</span>
         </Row>
         <Row label="Theme">
