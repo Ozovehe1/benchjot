@@ -4,6 +4,8 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
 // Signed-out visitors may see these; signed-in users are sent home from /login.
 const AUTH_PATHS = ["/login"];
+// Reachable signed in or out (the email confirmation link).
+const OPEN_PATHS = ["/auth/"];
 const LANDING = "/";
 
 export async function middleware(request: NextRequest) {
@@ -26,6 +28,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
   // API routes answer 401 themselves instead of redirecting.
+  if (OPEN_PATHS.some((p) => path.startsWith(p))) return response;
   if (!user && !isAuthPage && path !== LANDING && !path.startsWith("/api/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
