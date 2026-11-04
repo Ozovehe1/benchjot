@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror, { EditorView, type Extension } from "@uiw/react-codemirror";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { tags as t } from "@lezer/highlight";
+import type { Tag } from "@lezer/highlight";
 import { languageSettings, loadGrammar } from "@/lib/cm-languages";
+import { CODE_TOKENS } from "@/lib/code-theme";
 import { errorLineField, lintFor, setErrorLine } from "@/lib/cm-run";
 import { CodeKeys } from "./code-keys";
 
@@ -26,17 +27,7 @@ const baseTheme = EditorView.theme({
   ".cm-completionIcon": { display: "none" },
 });
 
-const highlight = syntaxHighlighting(
-  HighlightStyle.define([
-    { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.operatorKeyword], color: "var(--hl-keyword)" },
-    { tag: [t.string, t.special(t.string), t.regexp], color: "var(--hl-string)" },
-    { tag: [t.number, t.bool, t.null, t.atom], color: "var(--hl-number)" },
-    { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--hl-comment)", fontStyle: "italic" },
-    { tag: [t.className, t.typeName], color: "var(--hl-type)" },
-    { tag: [t.operator, t.punctuation, t.bracket], color: "var(--muted)" },
-    { tag: t.heading, fontWeight: "600" },
-  ]),
-);
+const highlight = syntaxHighlighting(HighlightStyle.define(CODE_TOKENS.map((tok) => ({ ...tok, tag: tok.tag as Tag | Tag[] }))));
 
 // Code is not prose: no capitalisation, autocorrect, suggestions or spellcheck on mobile keyboards.
 const codeInput = (label: string) =>

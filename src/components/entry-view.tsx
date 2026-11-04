@@ -15,15 +15,15 @@ import {
   useProjects,
   useSnippets,
 } from "@/lib/data";
-import { displayTitle } from "@/lib/format";
+import { cn, displayTitle } from "@/lib/format";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import type { Entry, NoteIndexItem } from "@/lib/schemas";
 import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
 import { FilePicker } from "./file-picker";
-import { Markdown } from "./markdown";
 import { NoteBody } from "./note-body";
+import { NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
 import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
@@ -187,7 +187,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         placeholder="Title"
         aria-label="Title"
         maxLength={200}
-        className="mt-6 block w-full resize-none overflow-hidden text-xl font-semibold leading-snug outline-none"
+        className={cn(NOTE_TITLE_CLASS, "resize-none overflow-hidden outline-none")}
       />
 
       <div className="mt-1 flex items-center gap-2 text-xs text-muted">
@@ -226,7 +226,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       </div>
 
       {preview ? (
-        <div className="mt-4 min-h-24">{notes.trim() ? <Markdown notes={notesIndex}>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
+        <RenderedBody value={notes} notes={notesIndex} />
       ) : (
         <NoteBody
           textareaRef={notesRef}

@@ -12,6 +12,7 @@ import { runsOnServer } from "@/lib/run/server-languages";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { FixDiff } from "./fix-diff";
 import { RunOutput } from "./run-output";
+import { SnippetHeader } from "./snippet-header";
 import { Button, TextButton } from "./ui";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
@@ -156,9 +157,9 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
 
   return (
     <div className="border-t border-line">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3 font-mono text-xs text-muted">
-          {snippet.filename && <span className="min-w-0 truncate">{snippet.filename}</span>}
+      <SnippetHeader
+        filename={snippet.filename}
+        language={
           <select
             value={language}
             onChange={(e) => pickLanguage(e.target.value as LanguageId)}
@@ -171,23 +172,25 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
               </option>
             ))}
           </select>
-        </div>
-        {running ? (
-          <Button onClick={() => handle.current?.stop()} variant="neutral">
-            Stop
-          </Button>
-        ) : (
-          <div className="flex items-center gap-4">
-            {serverable && pro && (
-              <TextButton onClick={() => run("server")} strong={!runnable}>
-                Run on server
-              </TextButton>
-            )}
-            {serverable && plan === "free" && !runnable && <span className="text-xs text-faint">Server runs · Pro</span>}
-            {runnable && <Button onClick={() => run("browser")}>Run</Button>}
-          </div>
-        )}
-      </div>
+        }
+        actions={
+          running ? (
+            <Button onClick={() => handle.current?.stop()} variant="neutral">
+              Stop
+            </Button>
+          ) : (
+            <div className="flex items-center gap-4">
+              {serverable && pro && (
+                <TextButton onClick={() => run("server")} strong={!runnable}>
+                  Run on server
+                </TextButton>
+              )}
+              {serverable && plan === "free" && !runnable && <span className="text-xs text-faint">Server runs · Pro</span>}
+              {runnable && <Button onClick={() => run("browser")}>Run</Button>}
+            </div>
+          )
+        }
+      />
 
       <CodeEditor
         value={content}

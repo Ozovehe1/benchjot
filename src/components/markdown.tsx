@@ -1,4 +1,5 @@
-"use client";
+// No "use client": server components render it with no client JS (the landing
+// preview); client components (the editor) bundle it as usual.
 import { useMemo } from "react";
 import Link from "next/link";
 import ReactMarkdown, { type Options } from "react-markdown";

@@ -38,7 +38,8 @@ export function RunOutput({
   stale?: boolean;
   /** A quiet line under the status, e.g. a save failure. */
   note?: string | null;
-  onClear: () => void;
+  /** Without it the panel is read-only: no Copy or Clear (e.g. the landing preview). */
+  onClear?: () => void;
 }) {
   const error = result?.error?.text;
   const [copied, setCopied] = useState(false);
@@ -68,7 +69,7 @@ export function RunOutput({
           </span>
           {stale && <span> · Output from an earlier version</span>}
         </span>
-        {!running && (
+        {!running && onClear && (
           <div className="flex items-center gap-5">
             {text && (
               <TextButton onClick={copy} aria-label="Copy output">
