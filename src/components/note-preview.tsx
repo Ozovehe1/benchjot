@@ -17,7 +17,7 @@ export function NotePreview({ entry, snippets }: { entry: Pick<Entry, "title" | 
   return (
     <>
       <h2 className={cn(NOTE_TITLE_CLASS, "break-words")}>{entry.title}</h2>
-      <RenderedBody value={entry.notes} />
+      <RenderedBody value={entry.notes} reserve={false} />
       <section aria-label="Code" className="mt-10">
         {snippets.map((s, i) => (
           <SnippetView key={s.id} snippet={s} index={i} />

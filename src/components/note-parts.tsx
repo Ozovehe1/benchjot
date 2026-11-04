@@ -6,7 +6,10 @@ import { Markdown } from "./markdown";
 /** The note title's type and spacing; the editor applies it to its textarea. */
 export const NOTE_TITLE_CLASS = "mt-6 block w-full text-xl font-semibold leading-snug";
 
-/** The note body as rendered (the editor's Preview, and read-only views). */
-export function RenderedBody({ value, notes }: { value: string; notes?: readonly NoteRef[] }) {
-  return <div className="mt-4 min-h-24">{value.trim() ? <Markdown notes={notes}>{value}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>;
+/**
+ * The note body as rendered (the editor's Preview, and read-only views).
+ * `reserve` keeps the editor's tap-to-type height; read-only views turn it off.
+ */
+export function RenderedBody({ value, notes, reserve = true }: { value: string; notes?: readonly NoteRef[]; reserve?: boolean }) {
+  return <div className={reserve ? "mt-4 min-h-24" : "mt-4"}>{value.trim() ? <Markdown notes={notes}>{value}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>;
 }
