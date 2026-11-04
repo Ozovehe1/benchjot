@@ -82,7 +82,12 @@ export function EntryList({ project }: { project?: Project }) {
     <Column className="pb-16">
       <TopBar
         left={project && <TextLink href="/">All notes</TextLink>}
-        right={<TextLink href="/settings">Settings</TextLink>}
+        right={
+          <>
+            <TextLink href="/map" className="min-w-12 justify-center">Map</TextLink>
+            <TextLink href="/settings">Settings</TextLink>
+          </>
+        }
       />
 
       {project && (
