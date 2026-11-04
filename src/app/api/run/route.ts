@@ -14,7 +14,7 @@ const body = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await requireSession();
+  const session = await requireSession(request);
   if (session instanceof NextResponse) return session;
   if (session.plan !== "pro") return jsonError(403, "Server runs are part of Pro");
 

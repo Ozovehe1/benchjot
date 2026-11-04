@@ -11,7 +11,7 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 
 export async function POST(request: Request) {
-  const session = await requireSession();
+  const session = await requireSession(request);
   if (session instanceof NextResponse) return session;
   const input = await readBody(request, (v) => fixRequest.safeParse(v));
   if (input instanceof NextResponse) return input;
