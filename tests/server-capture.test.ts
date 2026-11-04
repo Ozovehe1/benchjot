@@ -17,7 +17,7 @@ function serverRun(code: string) {
   // The command cds into /tmp/bj; give each test its own HOME-free copy of that path.
   const script = cmd[2]!.replaceAll("/tmp/bj", mkdtempSync(join(tmpdir(), "bj-")));
   const r = spawnSync(cmd[0]!, [cmd[1]!, script], {
-    env: { PATH: process.env.PATH, BJ_CODE: code, BJ_CAPTURE: CAPTURE, BJ_MAX_TOTAL_BYTES: String(SERVER_OUTPUT_BYTES) },
+    env: { ...process.env, BJ_CODE: code, BJ_CAPTURE: CAPTURE, BJ_MAX_TOTAL_BYTES: String(SERVER_OUTPUT_BYTES) },
     encoding: "utf8",
   });
   return { status: r.status, stderr: r.stderr, ...splitBundle(r.stdout) };
