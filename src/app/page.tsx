@@ -73,6 +73,10 @@ export default async function Home() {
           </TextLink>
         </nav>
       </main>
+      <footer className="mt-10 flex justify-center gap-5 pb-6 text-xs text-faint">
+        <TextLink href="/privacy" className="text-xs">Privacy</TextLink>
+        <TextLink href="/terms" className="text-xs">Terms</TextLink>
+      </footer>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 // Signed-out visitors may see these; signed-in users are sent home from /login.
 const AUTH_PATHS = ["/login"];
 // Reachable signed in or out (the email confirmation link).
-const OPEN_PATHS = ["/auth/"];
+const OPEN_PATHS = ["/auth/", "/privacy", "/terms"];
 const LANDING = "/";
 
 export async function middleware(request: NextRequest) {
