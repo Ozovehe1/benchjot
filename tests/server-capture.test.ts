@@ -41,6 +41,10 @@ describe.skipIf(!hasPython)("server Python runs through bj_capture", () => {
     expect(r.stderr).not.toContain("bj_capture");
     expect(serverErrorLine("python", r.stderr)).toBe(2);
   });
+  it("lets the code call asyncio.run itself, and still supports top-level await", () => {
+    expect(serverRun("import asyncio\nasync def m():\n    return 5\nprint(asyncio.run(m()))\n").stdout).toBe("5\n");
+    expect(serverRun("import asyncio\nawait asyncio.sleep(0)\nprint('ok')\n").stdout).toBe("ok\n");
+  });
   it("passes sys.exit codes through", () => {
     expect(serverRun("import sys\nsys.exit(3)\n").status).toBe(3);
   });

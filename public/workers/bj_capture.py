@@ -500,45 +500,30 @@ def _finish(cwd, before):
     _written_images(cwd, before, _session.dir)
 
 
-async def run(code, out_dir, filename="<exec>", globals_=None):
-    """Runs `code` as __main__, captures its rich outputs into out_dir; returns the manifest dict.
-
-    Exceptions from the user's code propagate (after the outputs made before them are saved),
-    so each runner reports errors exactly as before.
-    """
+def _begin(out_dir, globals_):
     global _session
     os.makedirs(out_dir, exist_ok=True)
     _session = _Session(out_dir)
     _prepare_matplotlib()
     _install_hooks()
     cwd = os.getcwd()
-    before = _scan(cwd)
     g = globals_ if globals_ is not None else {"__name__": "__main__"}
     g.setdefault("display", display)
-    try:
-        tree = ast.parse(code, filename, "exec")
-        last = None
-        if tree.body and isinstance(tree.body[-1], ast.Expr):
-            last = ast.Expression(tree.body.pop().value)
-        flags = ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
-        body = compile(tree, filename, "exec", flags=flags)
-        r = eval(body, g)
-        if r is not None and hasattr(r, "__await__"):
-            await r
-        if last is not None:
-            value = eval(compile(last, filename, "eval", flags=flags), g)
-            if value is not None and hasattr(value, "__await__") and type(value).__name__ == "coroutine":
-                value = await value
-            _emit(value)
-        return _finish_and_save(cwd, before)
-    except BaseException:
-        try:
-            _finish_and_save(cwd, before)
-        except Exception:
-            pass
-        raise
-    finally:
-        _session = None
+    return cwd, _scan(cwd), g
+
+
+def _compile(code, filename):
+    """The code without its last line when that is an expression (shown like a notebook cell's value), and that line."""
+    tree = ast.parse(code, filename, "exec")
+    last = None
+    if tree.body and isinstance(tree.body[-1], ast.Expr):
+        last = ast.Expression(tree.body.pop().value)
+    flags = ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
+    return compile(tree, filename, "exec", flags=flags), (compile(last, filename, "eval", flags=flags) if last is not None else None)
+
+
+def _awaitable(v):
+    return type(v).__name__ == "coroutine" and hasattr(v, "__await__")
 
 
 def _finish_and_save(cwd, before):
@@ -549,11 +534,53 @@ def _finish_and_save(cwd, before):
     return _session.save()
 
 
+async def run(code, out_dir, filename="<exec>", globals_=None):
+    """Runs `code` as __main__, captures its rich outputs into out_dir; returns the manifest dict.
+
+    For runners inside an event loop (Pyodide). Exceptions from the user's code propagate
+    (after the outputs made before them are saved), so each runner reports errors as before.
+    """
+    global _session
+    cwd, before, g = _begin(out_dir, globals_)
+    try:
+        body, last = _compile(code, filename)
+        r = eval(body, g)
+        if _awaitable(r):
+            await r
+        if last is not None:
+            value = eval(last, g)
+            _emit(await value if _awaitable(value) else value)
+        return _finish_and_save(cwd, before)
+    except BaseException:
+        _finish_and_save(cwd, before)
+        raise
+    finally:
+        _session = None
+
+
 def run_sync(code, out_dir, filename="<exec>", globals_=None):
-    """For runners without an event loop (server, Android)."""
+    """The same for runners without an event loop (server, Android): the code runs outside any
+    loop, so it may call asyncio.run itself; only top-level await starts one."""
     import asyncio
 
-    return asyncio.run(run(code, out_dir, filename, globals_))
+    global _session
+    cwd, before, g = _begin(out_dir, globals_)
+    try:
+        body, last = _compile(code, filename)
+        r = eval(body, g)
+        if _awaitable(r):
+            asyncio.run(r)
+        if last is not None:
+            value = eval(last, g)
+            if _awaitable(value):
+                value = asyncio.run(value)
+            _emit(value)
+        return _finish_and_save(cwd, before)
+    except BaseException:
+        _finish_and_save(cwd, before)
+        raise
+    finally:
+        _session = None
 
 
 def user_traceback(exc, filename):
