@@ -33,10 +33,12 @@ ONLY = os.environ.get("E2E_ONLY", "")
 
 def launch(p):
     kw = {}
+    if os.environ.get("CHROMIUM"):  # a local Chromium build instead of Playwright's
+        kw.update(executable_path=os.environ["CHROMIUM"], args=["--no-sandbox"])
     proxy = os.environ.get("HTTPS_PROXY")
     if proxy:  # sandbox egress
         u = up.urlparse(proxy)
-        kw["proxy"] = {"server": f"{u.scheme}://{u.hostname}:{u.port}", "username": up.unquote(u.username or ""), "password": up.unquote(u.password or "")}
+        kw["proxy"] = {"server": f"{u.scheme}://{u.hostname}:{u.port}", "username": up.unquote(u.username or ""), "password": up.unquote(u.password or ""), "bypass": "localhost,127.0.0.1"}
     return p.chromium.launch(**kw)
 
 

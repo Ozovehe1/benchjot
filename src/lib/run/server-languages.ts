@@ -13,7 +13,12 @@ export const IMAGES = {
 export type ImageId = keyof typeof IMAGES;
 
 /** Packages baked into the Python image so common research code needs no `# pip:` line. */
-export const PYTHON_PREINSTALLED = ["numpy", "pandas", "scipy"] as const;
+export const PYTHON_PREINSTALLED = ["numpy", "pandas", "scipy", "matplotlib", "seaborn", "scikit-learn", "pillow", "plotly", "altair", "bokeh"] as const;
+
+/** Server runs return figures, tables and charts inline after this mark on stdout (bj_capture.BUNDLE_MARK). */
+export const BUNDLE_MARK = "\n\u0000BJ-OUTPUTS\u0000";
+/** Their total size, so the API answer stays under the hosting limit (about 4.5 MB). */
+export const SERVER_OUTPUT_BYTES = 3 * 1024 * 1024;
 
 interface ServerLanguage {
   image: ImageId;
@@ -27,7 +32,8 @@ interface ServerLanguage {
 const firstAt = (file: string) => ({ re: new RegExp(`${file.replace(".", "\\.")}:(\\d+)`, "g"), pick: "first" as const });
 
 export const SERVER_LANGUAGES = {
-  python: { image: "python", file: "main.py", run: "python3 -u main.py", line: { re: /File "(?:[^"]*\/)?main\.py", line (\d+)/g, pick: "last" } },
+  // Through bj_capture.py (written next to main.py), which captures figures, tables and charts.
+  python: { image: "python", file: "main.py", run: "python3 -u bj_capture.py main.py out", line: { re: /File "(?:[^"]*\/)?main\.py", line (\d+)/g, pick: "last" } },
   c: { image: "gcc", file: "main.c", run: "gcc -O2 -std=c17 -o main main.c -lm && ./main", line: firstAt("main.c") },
   cpp: { image: "gcc", file: "main.cpp", run: "g++ -O2 -std=c++20 -o main main.cpp && ./main", line: firstAt("main.cpp") },
   go: { image: "go", file: "main.go", run: "go run main.go", line: firstAt("main.go") },
@@ -112,7 +118,8 @@ export function buildCommand(language: ServerLanguageId, d: Directives): string[
     ? `pip install -q --disable-pip-version-check --root-user-action=ignore ${d.packages.map((p) => `'${p}'`).join(" ")} 1>&2 && `
     : "";
   const body = `${pip}${spec.run}`;
-  const script = `mkdir -p /tmp/bj && cd /tmp/bj && printf '%s' "$BJ_CODE" > ${spec.file} && exec timeout -s TERM ${d.timeoutSec}s sh -c '${body.replace(/'/g, `'\\''`)}'`;
+  const capture = language === "python" ? `printf '%s' "$BJ_CAPTURE" > bj_capture.py && ` : "";
+  const script = `mkdir -p /tmp/bj && cd /tmp/bj && printf '%s' "$BJ_CODE" > ${spec.file} && ${capture}exec timeout -s TERM ${d.timeoutSec}s sh -c '${body.replace(/'/g, `'\\''`)}'`;
   return ["sh", "-c", script];
 }
 
@@ -133,6 +140,20 @@ export interface ServerRunResponse {
   exitCode: number;
   ms: number;
   line: number | null;
+  /** Python only: bj_capture's manifest and files (base64), when the run made any. */
+  outputs?: { manifest: unknown; files: Record<string, string> } | null;
+}
+
+/** Splits bj_capture's bundle off the end of stdout: the user's own output, and the outputs if any. */
+export function splitBundle(stdout: string): { stdout: string; outputs: ServerRunResponse["outputs"] } {
+  const at = stdout.lastIndexOf(BUNDLE_MARK);
+  if (at === -1) return { stdout, outputs: null };
+  try {
+    const parsed = JSON.parse(stdout.slice(at + BUNDLE_MARK.length)) as NonNullable<ServerRunResponse["outputs"]>;
+    return { stdout: stdout.slice(0, at), outputs: parsed && typeof parsed === "object" && "manifest" in parsed ? parsed : null };
+  } catch {
+    return { stdout: stdout.slice(0, at), outputs: null };
+  }
 }
 
 export function outcomeOf(exitCode: number): ServerOutcome {

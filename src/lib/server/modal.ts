@@ -1,5 +1,7 @@
 // Server-side only: runs one snippet in a fresh Modal Sandbox and returns its output.
 // Limits (CPU, memory, time, optional GPU) come from server-languages.ts.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ModalClient, type Image } from "modal";
 import {
   buildCommand,
@@ -9,7 +11,9 @@ import {
   outcomeOf,
   PYTHON_PREINSTALLED,
   SERVER_LANGUAGES,
+  SERVER_OUTPUT_BYTES,
   serverErrorLine,
+  splitBundle,
   type Directives,
   type ImageId,
   type ServerLanguageId,
@@ -17,6 +21,9 @@ import {
 } from "../run/server-languages";
 
 const APP_NAME = "benchjot-runs";
+let capture: string | undefined;
+/** public/workers/bj_capture.py: the same capture the browser runs (bundled via next.config outputFileTracingIncludes). */
+const captureSource = () => (capture ??= readFileSync(join(process.cwd(), "public/workers/bj_capture.py"), "utf8"));
 let client: ModalClient | undefined;
 
 function modal(): ModalClient {
@@ -38,7 +45,7 @@ export async function runOnModal(language: ServerLanguageId, code: string, d: Di
   const started = Date.now();
   const sb = await m.sandboxes.create(app, image(m, SERVER_LANGUAGES[language].image), {
     command: buildCommand(language, d),
-    env: { BJ_CODE: code },
+    env: language === "python" ? { BJ_CODE: code, BJ_CAPTURE: captureSource(), BJ_MAX_TOTAL_BYTES: String(SERVER_OUTPUT_BYTES) } : { BJ_CODE: code },
     cpu: LIMITS.cpu,
     cpuLimit: LIMITS.cpu,
     memoryMiB: LIMITS.memoryMiB,
@@ -50,9 +57,11 @@ export async function runOnModal(language: ServerLanguageId, code: string, d: Di
   const stop = () => void sb.terminate().catch(() => {});
   signal?.addEventListener("abort", stop, { once: true });
   try {
-    const [stdout, stderr, exitCode] = await Promise.all([sb.stdout.readText(), sb.stderr.readText(), sb.wait()]);
+    const [raw, stderr, exitCode] = await Promise.all([sb.stdout.readText(), sb.stderr.readText(), sb.wait()]);
+    const { stdout, outputs } = language === "python" ? splitBundle(raw) : { stdout: raw, outputs: null };
     return {
       outcome: outcomeOf(exitCode),
+      outputs,
       stdout: capOutput(stdout),
       stderr: capOutput(stderr),
       exitCode,

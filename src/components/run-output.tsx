@@ -29,6 +29,7 @@ export function RunOutput({
   stale = false,
   note = null,
   onClear,
+  onDownload,
 }: {
   chunks: Chunk[];
   status: string;
@@ -40,6 +41,8 @@ export function RunOutput({
   note?: string | null;
   /** Without it the panel is read-only: no Copy or Clear (e.g. the landing preview). */
   onClear?: () => void;
+  /** Downloads the whole run (text and every output) as a zip; only when the run has figures or tables. */
+  onDownload?: () => void;
 }) {
   const error = result?.error?.text;
   const [copied, setCopied] = useState(false);
@@ -74,6 +77,11 @@ export function RunOutput({
             {text && (
               <TextButton onClick={copy} aria-label="Copy output">
                 {copied ? "Copied" : "Copy"}
+              </TextButton>
+            )}
+            {onDownload && (
+              <TextButton onClick={onDownload} aria-label="Download the run as a zip">
+                Download run
               </TextButton>
             )}
             <TextButton onClick={onClear}>
