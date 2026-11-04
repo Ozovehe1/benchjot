@@ -1,16 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAutosave, useSaveStatus } from "@/lib/autosave";
-import { createEmptySnippet, createSnippets, deleteEntry, updateEntry, useEntry, useProjects, useSnippets } from "@/lib/data";
+import {
+  createEmptySnippet,
+  createEntry,
+  createSnippets,
+  deleteEntry,
+  updateEntry,
+  useEntry,
+  useNoteIndex,
+  useNoteLinks,
+  useProjects,
+  useSnippets,
+} from "@/lib/data";
+import { displayTitle } from "@/lib/format";
+import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
-import type { Entry } from "@/lib/schemas";
+import type { Entry, NoteIndexItem } from "@/lib/schemas";
+import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
 import { FilePicker } from "./file-picker";
 import { Markdown } from "./markdown";
+import { NoteBody } from "./note-body";
+import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
 import { Column, Segmented, TextButton, TextLink, TopBar } from "./ui";
+
+const NO_NOTES: NoteIndexItem[] = [];
 
 /** Placeholder and accessible name of the note body. */
 const NOTE_LABEL = "Experiment note";
@@ -57,6 +76,36 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
     }
   }
   const { data: projects } = useProjects();
+  const notesIndex = useNoteIndex().data ?? NO_NOTES;
+  const { data: links } = useNoteLinks();
+  const [parentId, setParentId] = useState<string | null>(entry.parent_id ?? null);
+  const [picking, setPicking] = useState(false);
+  const [parentError, setParentError] = useState<string | null>(null);
+  // The tree as it is now, with this note's parent as just chosen.
+  const tree = notesIndex.map((n) => (n.id === entry.id ? { ...n, parent_id: parentId } : n));
+  const path = ancestors(entry.id, tree);
+  const parent = path.at(-1);
+  const subNotes = childrenOf(entry.id, tree);
+  const linkedFrom = links ? backlinksTo(entry.id, links, notesIndex) : [];
+
+  async function reparent(next: string | null) {
+    const previous = parentId;
+    setPicking(false);
+    setParentId(next);
+    setParentError(null);
+    try {
+      await updateEntry(entry.id, { parent_id: next });
+    } catch (e) {
+      setParentId(previous);
+      setParentError(e instanceof Error ? e.message : "Could not set the parent.");
+    }
+  }
+
+  async function newSubNote() {
+    await flushAll();
+    const child = await createEntry("", projectId || null, entry.id);
+    router.push(`/n/${child.id}`);
+  }
 
   async function move(next: string) {
     const previous = projectId;
@@ -111,6 +160,19 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         }
       />
 
+      {path.length > 0 && (
+        <nav aria-label="Parent notes" className="-mb-4 mt-2 flex flex-wrap items-center gap-x-2 text-muted">
+          {path.map((n, i) => (
+            <Fragment key={n.id}>
+              {i > 0 && <span aria-hidden className="text-faint">›</span>}
+              <TextLink href={`/n/${n.id}`} className="max-w-[60vw] truncate text-xs">
+                {displayTitle(n.title)}
+              </TextLink>
+            </Fragment>
+          ))}
+        </nav>
+      )}
+
       <textarea
         ref={titleRef}
         value={title}
@@ -146,6 +208,17 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         {moveError && <span role="alert" className="text-fg">{moveError}</span>}
       </div>
 
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span>Parent</span>
+        <TextButton onClick={() => setPicking((p) => !p)} aria-expanded={picking} className="max-w-[60vw] truncate text-xs">
+          <span className="truncate">{parent ? displayTitle(parent.title) : "None"}</span>
+        </TextButton>
+        {parentError && <span role="alert" className="text-fg">{parentError}</span>}
+      </div>
+      {picking && (
+        <ParentPicker noteId={entry.id} notes={notesIndex} current={parentId} onPick={(id) => void reparent(id)} onClose={() => setPicking(false)} />
+      )}
+
       <div className="flex items-center gap-4 text-xs text-muted">
         <span>Outcome</span>
         <Segmented label="Outcome" options={OUTCOME_CHOICES} value={outcome} onChange={(v) => void mark(v)} />
@@ -153,14 +226,15 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       </div>
 
       {preview ? (
-        <div className="mt-4 min-h-24">{notes.trim() ? <Markdown>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
+        <div className="mt-4 min-h-24">{notes.trim() ? <Markdown notes={notesIndex}>{notes}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>
       ) : (
-        <textarea
-          ref={notesRef}
+        <NoteBody
+          textareaRef={notesRef}
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={NOTE_LABEL}
-          aria-label={NOTE_LABEL}
+          onChange={setNotes}
+          notes={notesIndex}
+          selfId={entry.id}
+          label={NOTE_LABEL}
           className="mt-4 block min-h-24 w-full resize-none overflow-hidden leading-7 outline-none"
         />
       )}
@@ -178,9 +252,34 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         )}
       </section>
 
+      <NoteList title="Sub-notes" notes={subNotes} empty={null}>
+        <TextButton onClick={() => void newSubNote()}>New sub-note</TextButton>
+      </NoteList>
+      <NoteList title="Linked from" notes={linkedFrom} empty="No notes link here." />
+
       <div className="mt-12">
         <TextButton onClick={remove}>Delete note</TextButton>
       </div>
     </Column>
+  );
+}
+
+/** A titled list of notes (sub-notes, backlinks), each row a 48px link. */
+function NoteList({ title, notes, empty, children }: { title: string; notes: readonly NoteIndexItem[]; empty: string | null; children?: React.ReactNode }) {
+  return (
+    <section aria-label={title} className="mt-10">
+      <h2 className="text-xs text-muted">{title}</h2>
+      <ul className="divide-y divide-line">
+        {notes.map((n) => (
+          <li key={n.id}>
+            <Link href={`/n/${n.id}`} className={n.title.trim() ? "flex min-h-12 items-center truncate" : "flex min-h-12 items-center truncate text-muted"}>
+              <span className="truncate">{displayTitle(n.title)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {notes.length === 0 && empty && <p className="py-3 text-sm text-faint">{empty}</p>}
+      {children && <div className="border-t border-line">{children}</div>}
+    </section>
   );
 }

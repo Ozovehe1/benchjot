@@ -132,3 +132,7 @@
 .cm-lintRange-warning,
 .cm-lintRange-info { text-decoration-color: var(--faint); }
 .cm-diagnostic { padding: 4px 8px; border-left: none !important; font-size: 12px; }
+
+/* ------------------------------------------------------------ note links */
+.prose-notes a.note-link { text-decoration-style: solid; text-decoration-color: var(--muted); }
+.prose-notes .note-link-missing { color: var(--faint); text-decoration: underline dotted; text-underline-offset: 3px; cursor: default; }

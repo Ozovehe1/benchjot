@@ -1,13 +1,13 @@
 "use client";
 // Slim symbol row pinned above the on-screen keyboard while a code block is
 // focused on a touch device. Keys insert at the cursor without taking focus.
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { EditorView } from "@codemirror/view";
 import { insertBracket } from "@codemirror/autocomplete";
 import { indentMore, undo } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { symbolKeys } from "@/lib/languages";
+import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 
 function press(view: EditorView, key: string) {
   if (key === "Tab") {
@@ -19,24 +19,6 @@ function press(view: EditorView, key: string) {
     view.dispatch(tr ?? view.state.update(view.state.replaceSelection(key), { scrollIntoView: true, userEvent: "input" }));
   }
   view.focus();
-}
-
-/** Distance from the layout viewport's bottom to the visual viewport's bottom (the keyboard height). */
-function useKeyboardInset(): number {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => setInset(Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)));
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, []);
-  return inset;
 }
 
 export function CodeKeys({ view, language }: { view: EditorView; language: string }) {
