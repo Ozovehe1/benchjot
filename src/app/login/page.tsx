@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safe-next";
 import { isValidUsername, looksLikeEmail, normalizeUsername, USERNAME_HINT } from "@/lib/username";
 import { Button, Logo, TextButton } from "@/components/ui";
+import { GoogleButton } from "@/components/google-button";
 
 const email = z.email("Enter a valid email.");
 const password = z.string().min(8, "Password needs at least 8 characters.");
@@ -110,9 +111,15 @@ function LoginForm() {
   return (
     <form onSubmit={submit} noValidate className="mt-8">
       <h1 className="mb-6 text-[28px] font-semibold leading-tight tracking-tight">{signin ? "Sign in" : "Create account"}</h1>
-      <Button onClick={google} disabled={loading} variant="neutral" className="w-full">
-        Continue with Google
-      </Button>
+      <GoogleButton
+        disabled={loading}
+        onFallback={google}
+        onError={fail}
+        onSignedIn={() => {
+          router.replace(safeNext(next));
+          router.refresh();
+        }}
+      />
       <p className="mt-6 mb-2 text-center text-xs text-faint">or</p>
       {!signin && (
         <input
