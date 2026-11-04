@@ -22,6 +22,8 @@ npm run check                # typecheck + lint + tests
 Three tables, `projects`, `entries` and `snippets`, all owner-only via Row Level Security (`auth.uid() = user_id`).
 Each snippet keeps its latest run in `snippets.last_run` (stdout and stderr capped at 64 KB each, the error line, time, browser or server, a hash of the code it ran, when), so output survives reloads; the UI marks it "Output from an earlier version" once the code changes, and Clear removes it. Saving a run doesn't count as editing the note.
 Each note has an optional `entries.outcome` (`success` | `failed`, null = unmarked). Only the user sets it, from the note page; nothing sets it automatically. The list filter (All, Successful, Failed, Unmarked) is the `p_outcome` argument of `search_entries`, so it combines with search and the project scope; Fix gets the outcome as context.
+Notes nest: `entries.parent_id` is an optional parent note (same owner via a composite FK, `on delete set null`; a trigger refuses cycles). The note page shows the ancestors as a breadcrumb, a Parent picker, and Sub-notes with New sub-note.
+Notes link with `[[Title|<note id>]]` in the body (typing `[[` offers titles; the id keeps links working after a rename, the title is only a fallback label; a hand-typed `[[Title]]` resolves by title). The body is the only copy: `note_links()` derives every link from the bodies on read for Linked from (backlinks) and the map, and the preview renders links as the note's current title (muted when the note is gone). `/map` draws all notes with d3-force: links solid, parent → sub-note dashed; drag/pinch/wheel to pan and zoom, tap to open.
 Migrations live in `supabase/migrations/` and are applied through the Supabase Management API:
 
 ```bash

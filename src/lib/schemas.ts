@@ -9,6 +9,7 @@ export const entryPatch = z
     title: z.string().max(200, "Title is over 200 characters"),
     notes: z.string().max(200_000, "Note is over 200k characters"),
     project_id: z.uuid().nullable(),
+    parent_id: z.uuid().nullable(),
     outcome: z.enum(OUTCOMES).nullable(),
   })
   .partial();
@@ -59,6 +60,7 @@ export interface Entry {
   id: string;
   user_id: string;
   project_id: string | null;
+  parent_id: string | null;
   title: string;
   notes: string;
   outcome: Outcome | null;
@@ -66,7 +68,17 @@ export interface Entry {
   updated_at: string;
 }
 
-export type EntryListItem = Pick<Entry, "id" | "title" | "outcome" | "updated_at">;
+export type EntryListItem = Pick<Entry, "id" | "title" | "outcome" | "parent_id" | "updated_at">;
+
+/** Every note's id, title and parent: for links, the tree and the map. */
+export type NoteIndexItem = Pick<Entry, "id" | "title" | "parent_id">;
+
+/** One [[link]] in a note body, as note_links() returns it (target = the id it carries, if any). */
+export interface NoteLinkRow {
+  source: string;
+  label: string;
+  target: string | null;
+}
 
 export interface Snippet {
   id: string;

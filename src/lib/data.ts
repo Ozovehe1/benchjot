@@ -5,6 +5,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 import type { z } from "zod";
 import { supabase } from "./supabase/client";
 import { searchTerms } from "./search";
+import type { SourcedLink } from "./links";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { asPlan, type Plan } from "./plan";
 import { outcomeParam, type OutcomeFilter } from "./outcome";
@@ -18,6 +19,8 @@ import {
   type EntryListItem,
   type EntryPatch,
   type LastRun,
+  type NoteIndexItem,
+  type NoteLinkRow,
   type Project,
   type Snippet,
   type SnippetInput,
@@ -43,11 +46,13 @@ const keys = {
   projects: ["projects"] as const,
   entry: (id: string) => ["entry", id] as const,
   snippets: (entryId: string) => ["snippets", entryId] as const,
+  noteIndex: ["notes"] as const,
+  noteLinks: ["note-links"] as const,
 };
 
-/** Revalidate every cached list (any search query). */
+/** Revalidate every cached list (any search query), the note index and the links. */
 function refreshLists() {
-  return globalMutate((key) => Array.isArray(key) && key[0] === "entries");
+  return globalMutate((key) => Array.isArray(key) && (key[0] === "entries" || key[0] === "notes" || key[0] === "note-links"));
 }
 
 // ------------------------------------------------------------------ projects
@@ -104,7 +109,7 @@ export function useEntries(query: string, scope: EntryScope = {}) {
             p_unfiled: !!scope.unfiled,
             p_outcome: outcomeParam(scope.outcome ?? "all"),
           })
-          .select("id, title, outcome, updated_at"),
+          .select("id, title, outcome, parent_id, updated_at"),
       ) as EntryListItem[],
     { keepPreviousData: true },
   );
@@ -114,8 +119,23 @@ export function useEntry(id: string) {
   return useSWR(keys.entry(id), async () => check(await supabase().from("entries").select("*").eq("id", id).maybeSingle()) as Entry);
 }
 
-export async function createEntry(title = "", projectId: string | null = null): Promise<Entry> {
-  const row = validate(entryPatch, { title, project_id: projectId });
+/** Every note (id, title, parent), most recently edited first. */
+export function useNoteIndex() {
+  return useSWR(keys.noteIndex, async () =>
+    check(await supabase().from("entries").select("id, title, parent_id").order("updated_at", { ascending: false })) as NoteIndexItem[],
+  );
+}
+
+/** Every [[link]] in the user's notes, derived from the bodies by note_links(). */
+export function useNoteLinks() {
+  return useSWR(keys.noteLinks, async (): Promise<SourcedLink[]> => {
+    const rows = check(await supabase().rpc("note_links")) as NoteLinkRow[];
+    return rows.map((r) => ({ source: r.source, label: r.label.trim(), id: r.target }));
+  });
+}
+
+export async function createEntry(title = "", projectId: string | null = null, parentId: string | null = null): Promise<Entry> {
+  const row = validate(entryPatch, { title, project_id: projectId, parent_id: parentId });
   const created = check(await supabase().from("entries").insert(row).select().single()) as Entry;
   void refreshLists();
   return created;
