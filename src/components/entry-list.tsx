@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createEntry, createProject, createSnippets, deleteProject, renameProject, useEntries, useProjects } from "@/lib/data";
+import { createEntry, createProject, createSnippets, deleteProject, renameProject, useEntries, useNoteIndex, useProjects } from "@/lib/data";
 import { displayTitle, listDate } from "@/lib/format";
 import { OUTCOME_FILTER_LABEL, OUTCOME_FILTERS, OUTCOME_LABEL, type OutcomeFilter } from "@/lib/outcome";
 import type { Project } from "@/lib/schemas";
@@ -27,6 +27,8 @@ export function EntryList({ project }: { project?: Project }) {
   const scope = { ...(project ? { projectId: project.id } : searching ? {} : { unfiled: true }), outcome };
   const { data: entries, error: loadError } = useEntries(query, scope);
   const { data: projects } = useProjects();
+  const { data: index } = useNoteIndex();
+  const titleOf = new Map(index?.map((n) => [n.id, displayTitle(n.title)]));
   const projectId = project?.id ?? null;
 
   async function run(action: () => Promise<void>) {
@@ -149,7 +151,10 @@ export function EntryList({ project }: { project?: Project }) {
         {entries?.map((e) => (
           <li key={e.id}>
             <Link href={`/n/${e.id}`} className={row}>
-              <span className={e.title.trim() ? "truncate" : "truncate text-muted"}>{displayTitle(e.title)}</span>
+              <span className={e.title.trim() ? "truncate" : "truncate text-muted"}>
+                {e.parent_id && titleOf.has(e.parent_id) && <span className="text-faint">{titleOf.get(e.parent_id)} › </span>}
+                {displayTitle(e.title)}
+              </span>
               <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-faint">
                 {e.outcome && <OutcomeDot outcome={e.outcome} name={OUTCOME_LABEL[e.outcome]} />}
                 {listDate(e.updated_at)}
