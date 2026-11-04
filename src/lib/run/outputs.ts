@@ -127,7 +127,8 @@ export function downloadFormats(item: OutputItem): DownloadFormat[] {
   }
   if (item.kind === "chart") {
     // Drawn again from the spec at download time. Bokeh draws to a canvas, so no SVG.
-    const formats = item.lib === "bokeh" ? ["png", "jpg", "webp"] : ["png", "jpg", "webp", "svg"];
+    // PDF is the drawn chart on one page (lossless pixels on web, vector on Android).
+    const formats = item.lib === "bokeh" ? ["png", "jpg", "webp", "pdf"] : ["png", "jpg", "webp", "svg", "pdf"];
     for (const format of formats) out.push({ format, label: LABEL[format]!, how: "render" });
     file("json");
     return out;

@@ -61,7 +61,32 @@ def launch(p):
     return p.chromium.launch(**kw)
 
 
+# E2E_CAPTURE_DOWNLOADS=1: read each saved blob in the page instead of through the
+# browser's download manager (for headless shells where downloads don't land).
+CAPTURE = os.environ.get("E2E_CAPTURE_DOWNLOADS") == "1"
+CAPTURE_JS = """
+window.__downloads = [];
+const click = HTMLAnchorElement.prototype.click;
+HTMLAnchorElement.prototype.click = function () {
+  if (!this.download || !this.href.startsWith("blob:")) return click.call(this);
+  const name = this.download;
+  window.__downloads.push(fetch(this.href).then(r => r.arrayBuffer()).then(b => {
+    let s = ""; const u = new Uint8Array(b);
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
+    return [name, btoa(s)];
+  }));
+};
+"""
+
+
 def download(page, action):
+    if CAPTURE:
+        import base64
+        n = page.evaluate("window.__downloads.length")
+        action()
+        page.wait_for_function(f"window.__downloads.length > {n}", timeout=60_000)
+        name, b64 = page.evaluate(f"window.__downloads[{n}]")
+        return name, base64.b64decode(b64)
     with page.expect_download(timeout=60_000) as d:
         action()
     data = open(d.value.path(), "rb").read()
@@ -74,6 +99,8 @@ def main():
     with sync_playwright() as p:
         b = launch(p)
         ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, accept_downloads=True)
+        if CAPTURE:
+            ctx.add_init_script(CAPTURE_JS)
         page = ctx.new_page()
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto(f"{BASE}/login")
@@ -167,19 +194,22 @@ def main():
         expect(page.locator(".hoverlayer .hovertext").first).to_be_visible(timeout=5000)
         expect(page.locator(".hoverlayer .hovertext").first).to_contain_text("0.6")
         page.screenshot(path=f"{SHOTS}/outputs-plotly-viewer.png")
-        assert page.get_by_label("Download format").locator("option").all_inner_texts() == ["PNG", "JPG", "WebP", "SVG", "JSON"]
-        for f, sig in (("PNG", b"\x89PNG"), ("SVG", b"<svg"), ("JSON", b"{")):
+        assert page.get_by_label("Download format").locator("option").all_inner_texts() == ["PNG", "JPG", "WebP", "SVG", "PDF", "JSON"]
+        for f, sig in (("PNG", b"\x89PNG"), ("JPG", b"\xff\xd8\xff"), ("SVG", b"<svg"), ("PDF", b"%PDF"), ("JSON", b"{")):
             page.get_by_label("Download format").select_option(label=f)
             _, data = download(page, lambda: page.get_by_role("button", name="Download", exact=True).click())
             assert data.lstrip()[: len(sig)] == sig, (f, data[:20])
-        step("Plotly page: interactive (hover label), downloads PNG, SVG and the spec")
+        step("Plotly page: interactive (hover label), downloads PNG, JPG, SVG, PDF and the spec")
 
         page.get_by_role("link", name="Next output").click()
         expect(page.locator(".vega-embed")).to_be_visible(timeout=60_000)
         page.get_by_label("Download format").select_option(label="SVG")
         _, data = download(page, lambda: page.get_by_role("button", name="Download", exact=True).click())
         assert b"<svg" in data[:200], data[:80]
-        step("Vega-Lite page: drawn, SVG download")
+        page.get_by_label("Download format").select_option(label="PDF")
+        _, data = download(page, lambda: page.get_by_role("button", name="Download", exact=True).click())
+        assert data.startswith(b"%PDF"), data[:8]
+        step("Vega-Lite page: drawn, SVG and PDF download")
 
         page.get_by_role("link", name="Next output").click()
         page.wait_for_timeout(4000)
@@ -187,7 +217,10 @@ def main():
         page.get_by_label("Download format").select_option(label="PNG")
         _, data = download(page, lambda: page.get_by_role("button", name="Download", exact=True).click())
         assert data.startswith(b"\x89PNG"), data[:8]
-        step("Bokeh page: drawn, PNG download")
+        page.get_by_label("Download format").select_option(label="PDF")
+        _, data = download(page, lambda: page.get_by_role("button", name="Download", exact=True).click())
+        assert data.startswith(b"%PDF"), data[:8]
+        step("Bokeh page: drawn, PNG and PDF download")
 
         page.goto(note_url)
         name, data = download(page, lambda: page.get_by_role("button", name="Download the run as a zip").click())

@@ -41,9 +41,9 @@ describe("downloadFormats", () => {
     expect(formats(item("matplotlib"))).toEqual(["png:file", "jpg:convert", "webp:convert", "svg:file", "pdf:file"]);
   });
   it("offers PNG, JPG, WebP, SVG and the spec for Plotly / Vega-Lite; no SVG for Bokeh", () => {
-    expect(formats(item("plotly-scatter"))).toEqual(["png:render", "jpg:render", "webp:render", "svg:render", "json:file"]);
-    expect(formats(item("altair-bar"))).toEqual(["png:render", "jpg:render", "webp:render", "svg:render", "json:file"]);
-    expect(formats(item("bokeh-line"))).toEqual(["png:render", "jpg:render", "webp:render", "json:file"]);
+    expect(formats(item("plotly-scatter"))).toEqual(["png:render", "jpg:render", "webp:render", "svg:render", "pdf:render", "json:file"]);
+    expect(formats(item("altair-bar"))).toEqual(["png:render", "jpg:render", "webp:render", "svg:render", "pdf:render", "json:file"]);
+    expect(formats(item("bokeh-line"))).toEqual(["png:render", "jpg:render", "webp:render", "pdf:render", "json:file"]);
   });
   it("offers CSV for tables, from the preview when the full CSV wasn't kept", () => {
     expect(formats(item("table"))).toEqual(["csv:file"]);

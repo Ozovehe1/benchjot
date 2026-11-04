@@ -4,7 +4,7 @@
 // kept for tables; and a format picker to download it.
 import { useEffect, useRef, useState } from "react";
 import { useSnippets } from "@/lib/data";
-import { convertImage, type DrawnChart } from "@/lib/charts";
+import { convertImage, pngToPdf, type DrawnChart } from "@/lib/charts";
 import { notePath } from "@/lib/paths";
 import { dragStep, zoomAt, type View } from "@/lib/pan-zoom";
 import { displayFile, downloadFormats, downloadName, MIME, outputLabel, previewCsv, type DownloadFormat, type OutputItem, type SavedOutputs } from "@/lib/run/outputs";
@@ -103,6 +103,7 @@ async function download(item: OutputItem, outputs: SavedOutputs, f: DownloadForm
   }
   if (item.kind === "table") return saveBlob(name, new Blob([previewCsv(item)], { type: MIME.csv }));
   if (!chart) throw new Error("The chart is still drawing");
+  if (f.format === "pdf") return saveBlob(name, await pngToPdf(await chart.image("png", 2), 2));
   return saveBlob(name, await chart.image(f.format as "png" | "jpg" | "webp" | "svg"));
 }
 

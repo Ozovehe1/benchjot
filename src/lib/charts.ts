@@ -3,6 +3,7 @@
 // their CDNs on first use, drawing the spec the Python library saved. The app's
 // theme is laid over the spec (transparent background, theme text and grid), as
 // the Android renderer does, so a chart looks the same on both.
+import { deflateRgb, imagePdf } from "./pdf";
 import type { ChartLib } from "./run/outputs";
 
 const PLOTLY = "https://cdn.plot.ly/plotly-4.1.1.min.js";
@@ -140,6 +141,17 @@ export async function convertImage(src: Blob, format: "jpg" | "webp" | "png", ba
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** A PNG as a one-page lossless PDF; `scale` is the PNG's pixels per CSS pixel (page size in points). */
+export async function pngToPdf(png: Blob, scale = 2): Promise<Blob> {
+  const img = await createImageBitmap(png);
+  const c = Object.assign(document.createElement("canvas"), { width: img.width, height: img.height });
+  const g = c.getContext("2d")!;
+  g.drawImage(img, 0, 0);
+  const deflated = await deflateRgb(g.getImageData(0, 0, c.width, c.height).data);
+  const pdf = imagePdf({ deflated, width: c.width, height: c.height, pageWidth: (c.width / scale) * 0.75, pageHeight: (c.height / scale) * 0.75 });
+  return new Blob([pdf as BlobPart], { type: "application/pdf" });
 }
 
 /**
