@@ -32,3 +32,21 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  outputs:
+    # bj_capture.py with the real plotting libraries: the committed fixtures (the contract the
+    # web's tests and the Android app's chart renderer read) must be what it captures today.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/output-fixtures.txt
+      - run: pip install -r scripts/output-fixtures.txt
+      - name: Capture fixtures are current
+        run: |
+          python scripts/output-fixtures.py
+          git add -N tests/fixtures/outputs
+          git diff --exit-code --stat -- tests/fixtures/outputs || { echo "::error::bj_capture's output changed. Run scripts/output-fixtures.py and commit."; exit 1; }

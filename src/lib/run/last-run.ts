@@ -1,6 +1,7 @@
 // The latest run of a code block, as stored in snippets.last_run, and the
 // conversions to and from what RunOutput shows. Pure: no browser or DB imports.
 import type { LastRun } from "../schemas";
+import type { SavedOutputs } from "./outputs";
 import type { RunResult, Stream } from "./types";
 
 export type { LastRun };
@@ -34,7 +35,14 @@ export function codeHash(code: string): string {
 }
 
 /** Builds the stored record from a finished run. */
-export function toLastRun(chunks: Chunk[], result: RunResult, where: LastRun["where"], code: string, now = new Date()): LastRun {
+export function toLastRun(
+  chunks: Chunk[],
+  result: RunResult,
+  where: LastRun["where"],
+  code: string,
+  now = new Date(),
+  outputs: SavedOutputs | null = null,
+): LastRun {
   const join = (s: Stream) => chunks.filter((c) => c.stream === s).map((c) => c.text).join("");
   return {
     outcome: result.outcome,
@@ -46,6 +54,7 @@ export function toLastRun(chunks: Chunk[], result: RunResult, where: LastRun["wh
     where,
     code_hash: codeHash(code),
     ran_at: now.toISOString(),
+    ...(outputs && outputs.items.length ? { outputs } : {}),
   };
 }
 

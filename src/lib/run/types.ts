@@ -1,4 +1,5 @@
 // Run contracts shared by the UI and the runners (no heavy imports here).
+import type { CapturedOutputs } from "./outputs";
 
 export const RUN_TIMEOUT_MS = 30_000;
 
@@ -13,6 +14,8 @@ export interface RunResult {
   outcome: "ok" | "error" | "timeout" | "stopped";
   error: { text: string; line: number | null } | null;
   ms: number;
+  /** Figures, tables and charts the run produced (Python), before upload. */
+  outputs?: CapturedOutputs | null;
 }
 
 export interface RunHandle {

@@ -4,7 +4,23 @@
 import type { FixAnswer } from "../fix";
 import type { Outcome } from "../outcome";
 import type { ServerRunResponse } from "./server-languages";
+import type { CapturedOutputs, Manifest } from "./outputs";
 import type { RunHandle, RunResult, Stream } from "./types";
+
+function fromBase64(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/** The server's inline outputs as the browser runner gives them (validated again before upload). */
+export function serverOutputs(o: ServerRunResponse["outputs"]): CapturedOutputs | null {
+  if (!o) return null;
+  const files = Object.fromEntries(Object.entries(o.files).map(([k, v]) => [k, fromBase64(v)]));
+  const manifest = o.manifest as Manifest;
+  return manifest.items?.length ? { manifest, files } : null;
+}
 
 async function post<T>(url: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
@@ -17,7 +33,8 @@ export function toRunResult(r: ServerRunResponse): { chunks: { stream: Stream; t
   const failed = r.outcome !== "ok";
   const chunks = [{ stream: "stdout" as const, text: r.stdout }, ...(failed ? [] : [{ stream: "stderr" as const, text: r.stderr }])].filter((c) => c.text);
   const errorText = r.outcome === "timeout" ? r.stderr : r.stderr || `Exited with code ${r.exitCode}`;
-  return { chunks, result: { outcome: r.outcome, error: failed ? { text: errorText, line: r.line } : null, ms: r.ms } };
+  const outputs = serverOutputs(r.outputs);
+  return { chunks, result: { outcome: r.outcome, error: failed ? { text: errorText, line: r.line } : null, ms: r.ms, ...(outputs ? { outputs } : {}) } };
 }
 
 /** Runs code on the server; output arrives in one piece when the run ends. */

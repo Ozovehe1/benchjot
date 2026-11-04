@@ -34,13 +34,14 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   let started = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let finish: (r: RunResult) => void = () => {};
+  let outputs: RunResult["outputs"] = null;
   const elapsed = () => (started ? performance.now() - started : 0);
 
   const end = (r: RunResult) => {
     clearTimeout(timer);
     w.removeEventListener("message", onMessage);
     if (language !== "python") w.terminate();
-    finish(r);
+    finish(outputs ? { ...r, outputs } : r);
   };
 
   // Stopping Python means throwing its worker away; the next run loads it again (from cache).
@@ -63,6 +64,9 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
         break;
       case "out":
         events.onOutput(data.stream, data.text);
+        break;
+      case "outputs":
+        outputs = data.outputs;
         break;
       case "done":
         end({ outcome: "ok", error: null, ms: elapsed() });

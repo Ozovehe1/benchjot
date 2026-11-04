@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAutosave } from "@/lib/autosave";
 import { deleteSnippet, saveLastRun, updateSnippet, usePlan } from "@/lib/data";
@@ -9,9 +9,13 @@ import type { Outcome } from "@/lib/outcome";
 import type { Snippet } from "@/lib/schemas";
 import { codeHash, fromLastRun, toLastRun, type Chunk } from "@/lib/run/last-run";
 import { runsOnServer } from "@/lib/run/server-languages";
+import { MIME, runArchiveEntries, type CapturedOutputs } from "@/lib/run/outputs";
+import { notePath } from "@/lib/paths";
+import { saveBlob, saveText } from "@/lib/save-file";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { FixDiff } from "./fix-diff";
 import { RunOutput } from "./run-output";
+import { RunOutputs } from "./run-outputs";
 import { SnippetHeader } from "./snippet-header";
 import { Button, TextButton } from "./ui";
 
@@ -22,11 +26,18 @@ const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEdito
 
 const MAX_OUTPUT = 200_000;
 
-function download(name: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: name });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+/** Object URLs for a run's outputs that aren't saved yet; revoked when they change. */
+function useBlobUrls(live: CapturedOutputs | null): Record<string, string> {
+  const urls = useMemo(() => {
+    const out: Record<string, string> = {};
+    if (!live) return out;
+    for (const [name, data] of Object.entries(live.files)) {
+      out[name] = URL.createObjectURL(new Blob([data as BlobPart], { type: MIME[name.slice(name.lastIndexOf(".") + 1)] }));
+    }
+    return out;
+  }, [live]);
+  useEffect(() => () => Object.values(urls).forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  return urls;
 }
 
 /** `outcome` is the note's, sent to Fix as context. */
@@ -49,6 +60,27 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
   const [fix, setFix] = useState<{ before: string; code: string; summary: string } | null>(null);
   const [fixing, setFixing] = useState(false);
   const handle = useRef<RunHandle | null>(null);
+  // Figures, tables and charts: the live run's until it's saved, then the stored run's.
+  const [live, setLive] = useState<CapturedOutputs | null>(null);
+  const [hideSaved, setHideSaved] = useState(false);
+  const savedOutputs = hideSaved ? null : (snippet.last_run?.outputs ?? null);
+  const latestSaved = useRef(snippet.last_run?.outputs ?? null);
+  latestSaved.current = snippet.last_run?.outputs ?? null;
+  const blobUrls = useBlobUrls(live);
+  const store = useRef<typeof import("@/lib/run/output-store") | null>(null);
+  const outputStore = async () => (store.current ??= await import("@/lib/run/output-store"));
+  const [signed, setSigned] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!savedOutputs) return;
+    let gone = false;
+    outputStore()
+      .then((m) => m.signOutputs(savedOutputs))
+      .then((u) => !gone && setSigned(u))
+      .catch((e: Error) => !gone && setSaveError(`Figures couldn’t load: ${e.message}`));
+    return () => {
+      gone = true;
+    };
+  }, [savedOutputs]);
   const plan = usePlan();
   const { flush } = useAutosave({ language, content }, (v) => updateSnippet(snippet, v), {
     baseline: { language: initial, content: snippet.content },
@@ -66,12 +98,49 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
     saveLastRun(snippet, run).catch((e: Error) => setSaveError(`Output not saved: ${e.message}`));
   }
 
+  /** Uploads the run's outputs, saves the run, then deletes the run it replaced. */
+  async function persistRun(chunks: Chunk[], r: RunResult, where: "browser" | "server", code: string) {
+    setSaveError(null);
+    const previous = latestSaved.current;
+    let saved = null;
+    if (r.outputs) {
+      try {
+        const [{ addStaticRenders }, m] = await Promise.all([import("@/lib/charts"), outputStore()]);
+        saved = await m.uploadOutputs(snippet.id, await addStaticRenders(r.outputs));
+      } catch (e) {
+        setSaveError(`Figures not saved: ${(e as Error).message}`);
+      }
+    }
+    try {
+      await saveLastRun(snippet, toLastRun(chunks, r, where, code, new Date(), saved));
+      setLive(null);
+      setHideSaved(false);
+      if (previous && previous.dir !== saved?.dir) void (await outputStore()).deleteOutputs(previous).catch(() => {});
+    } catch (e) {
+      setSaveError(`Output not saved: ${(e as Error).message}`);
+      if (saved) void (await outputStore()).deleteOutputs(saved).catch(() => {});
+    }
+  }
+
   function clearOutput() {
+    const previous = latestSaved.current;
     setOutput(null);
     setResult(null);
     setFix(null);
     setRanHash(null);
+    setLive(null);
     persist(null);
+    if (previous) void outputStore().then((m) => m.deleteOutputs(previous)).catch(() => {});
+  }
+
+  /** The whole run as a zip: output text, the error, and every figure, table and chart file. */
+  async function downloadRun() {
+    const text = { stdout: (output ?? []).filter((c) => c.stream === "stdout").map((c) => c.text).join(""), stderr: (output ?? []).filter((c) => c.stream === "stderr").map((c) => c.text).join(""), error: result?.error?.text ?? null };
+    let outputs: CapturedOutputs | null = live;
+    if (!outputs && savedOutputs) outputs = { manifest: savedOutputs, files: await (await outputStore()).fetchAllOutputs(savedOutputs) };
+    const { zip } = await import("@/lib/zip");
+    const base = downloadName(snippet.filename, language, index).replace(/\.[^.]*$/, "");
+    saveBlob(`${base}-run.zip`, new Blob([zip(runArchiveEntries(text, outputs)) as BlobPart], { type: "application/zip" }));
   }
 
   function edit(next: string) {
@@ -101,6 +170,8 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
       setOutput((o) => [...(o ?? []), chunk]);
     };
     setOutput([]);
+    setLive(null);
+    setHideSaved(true);
     setRanHash(codeHash(code));
     setResult(null);
     setFix(null);
@@ -115,7 +186,8 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
     setStatus("");
     setResult(r);
     setRunning(false);
-    persist(toLastRun(chunks, r, inBrowser ? "browser" : "server", code));
+    if (r.outputs) setLive(r.outputs);
+    void persistRun(chunks, r, inBrowser ? "browser" : "server", code);
   }
 
   async function proposeFix() {
@@ -152,7 +224,9 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
     if (content.trim() && !window.confirm("Remove this code?")) return;
     handle.current?.stop();
     await flush();
+    const previous = latestSaved.current;
     await deleteSnippet(snippet);
+    if (previous) void outputStore().then((m) => m.deleteOutputs(previous)).catch(() => {});
   }
 
   return (
@@ -202,8 +276,27 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
       />
 
       {output && (
-        <RunOutput chunks={output} status={status} running={running} result={result} stale={stale} note={saveError} onClear={clearOutput} />
+        <RunOutput
+          chunks={output}
+          status={status}
+          running={running}
+          result={result}
+          stale={stale}
+          note={saveError}
+          onClear={clearOutput}
+          onDownload={live || savedOutputs ? downloadRun : undefined}
+        />
       )}
+
+      {live ? (
+        <RunOutputs manifest={live.manifest} url={(n) => (n ? blobUrls[n] : undefined)} href={null} />
+      ) : savedOutputs ? (
+        <RunOutputs
+          manifest={savedOutputs}
+          url={(n) => (n ? signed[n] : undefined)}
+          href={(i) => `${notePath(snippet.entry_id)}/out/${snippet.id}/${i}`}
+        />
+      ) : null}
 
       {fix && <FixDiff before={fix.before} after={fix.code} summary={fix.summary} onAccept={acceptFix} onReject={() => setFix(null)} />}
 
@@ -211,7 +304,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
         <TextButton onClick={copy}>
           {copied ? "Copied" : "Copy"}
         </TextButton>
-        <TextButton onClick={() => download(downloadName(snippet.filename, language, index), content)}>
+        <TextButton onClick={() => saveText(downloadName(snippet.filename, language, index), content)}>
           Download
         </TextButton>
         {lastError && !running && !fix && (

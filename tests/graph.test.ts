@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildEdges, layoutGraph } from "@/lib/graph";
-import { fitView, MAX_ZOOM, zoomAt } from "@/lib/pan-zoom";
+import { dragStep, fitView, MAX_ZOOM, zoomAt } from "@/lib/pan-zoom";
 
 const A = "0b6e6a9e-1111-4222-8333-444455556666";
 const B = "1c7f7b0f-2222-4333-9444-555566667777";
@@ -55,5 +55,16 @@ describe("pan and zoom", () => {
       expect(sx).toBeGreaterThanOrEqual(48 - 1e-9);
       expect(sx).toBeLessThanOrEqual(360 - 48 + 1e-9);
     }
+  });
+});
+
+describe("dragStep", () => {
+  it("pans with one pointer", () => {
+    expect(dragStep({ k: 2, x: 0, y: 0 }, { x: 10, y: 10 }, { x: 15, y: 7 }, null)).toEqual({ k: 2, x: 5, y: -3 });
+  });
+  it("pinches around the midpoint, within the limits given", () => {
+    const v = dragStep({ k: 1, x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 0, y: 0 }, 1, 8);
+    expect(v.k).toBeCloseTo(2);
+    expect(dragStep({ k: 1, x: 0, y: 0 }, { x: 20, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 0 }, 1, 8).k).toBe(1);
   });
 });

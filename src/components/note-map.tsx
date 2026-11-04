@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useNoteIndex, useNoteLinks } from "@/lib/data";
 import { displayTitle } from "@/lib/format";
 import { buildEdges, layoutGraph } from "@/lib/graph";
-import { fitView, zoomAt, type View } from "@/lib/pan-zoom";
+import { dragStep, fitView, zoomAt, type View } from "@/lib/pan-zoom";
 import { Column, TextLink, TopBar } from "./ui";
 
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
@@ -91,18 +91,7 @@ export function NoteMap() {
     const g = gesture.current;
     if (Math.hypot(p.x - g.sx, p.y - g.sy) > TAP_SLOP) g.moved = true;
     const others = [...pointers.current.entries()].filter(([id]) => id !== e.pointerId).map(([, q]) => q);
-    let v = viewRef.current;
-    if (others.length === 0) {
-      v = { ...v, x: v.x + p.x - prev.x, y: v.y + p.y - prev.y };
-    } else {
-      const o = others[0]!;
-      const before = Math.hypot(prev.x - o.x, prev.y - o.y);
-      const after = Math.hypot(p.x - o.x, p.y - o.y);
-      const mid0 = { x: (prev.x + o.x) / 2, y: (prev.y + o.y) / 2 };
-      const mid1 = { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2 };
-      if (before > 0) v = zoomAt(v, after / before, mid0.x, mid0.y);
-      v = { ...v, x: v.x + mid1.x - mid0.x, y: v.y + mid1.y - mid0.y };
-    }
+    const v = dragStep(viewRef.current, prev, p, others[0] ?? null);
     pointers.current.set(e.pointerId, p);
     setView(v);
   }

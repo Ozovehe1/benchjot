@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LANGUAGE_IDS } from "./languages";
 import { OUTCOMES, type Outcome } from "./outcome";
 import { MAX_SAVED_STREAM } from "./run/last-run";
+import { savedOutputs } from "./run/outputs";
 
 export const entryPatch = z
   .object({
@@ -37,6 +38,8 @@ export const lastRun = z.object({
   where: z.enum(["browser", "server"]),
   code_hash: z.string().min(1).max(32),
   ran_at: z.iso.datetime(),
+  /** Figures, tables and charts (run/outputs.ts); absent on runs without any and on older runs. */
+  outputs: savedOutputs.nullable().optional(),
 });
 export type LastRun = z.output<typeof lastRun>;
 
