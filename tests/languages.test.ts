@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { downloadName, languageConfig, languageFromFilename, LANGUAGES, symbolKeys } from "@/lib/languages";
+import { DEFAULT_LANGUAGE, downloadName, languageChosen, languageConfig, languageFromFilename, LANGUAGES, symbolKeys } from "@/lib/languages";
 
 describe("language config", () => {
   it("sets the indent style per language", () => {
@@ -64,5 +64,20 @@ describe("downloadName", () => {
     expect(downloadName("train.py", "python", 0)).toBe("train.py");
     expect(downloadName("", "go", 1)).toBe("code-2.go");
     expect(downloadName("", "text", 0)).toBe("code-1.txt");
+  });
+});
+
+describe("default language", () => {
+  it("is Python for new code blocks", () => {
+    expect(DEFAULT_LANGUAGE).toBe("python");
+  });
+  it("leaves an empty default (or old plain-text) block open to detection", () => {
+    expect(languageChosen("python", "")).toBe(false);
+    expect(languageChosen("text", "  ")).toBe(false);
+  });
+  it("keeps a picked language or saved code as chosen", () => {
+    expect(languageChosen("javascript", "")).toBe(true);
+    expect(languageChosen("python", "print(1)")).toBe(true);
+    expect(languageChosen("text", "notes")).toBe(true);
   });
 });

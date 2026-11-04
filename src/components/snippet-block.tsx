@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useAutosave } from "@/lib/autosave";
 import { deleteSnippet, saveLastRun, updateSnippet, usePlan } from "@/lib/data";
 import { detectLanguage } from "@/lib/detect-language";
-import { downloadName, isLanguageId, LANGUAGES, type LanguageId } from "@/lib/languages";
+import { downloadName, isLanguageId, languageChosen, LANGUAGES, type LanguageId } from "@/lib/languages";
 import type { Outcome } from "@/lib/outcome";
 import type { Snippet } from "@/lib/schemas";
 import { codeHash, fromLastRun, toLastRun, type Chunk } from "@/lib/run/last-run";
@@ -35,7 +35,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
   const [language, setLanguage] = useState<LanguageId>(initial);
   const [content, setContent] = useState(snippet.content);
   // A language counts as chosen once the user picks it, or once the block was saved with code in it.
-  const [chosen, setChosen] = useState(initial !== "text" || snippet.content.trim() !== "");
+  const [chosen, setChosen] = useState(languageChosen(initial, snippet.content));
   const [copied, setCopied] = useState(false);
   const [fixable, setFixable] = useState(0);
   const [running, setRunning] = useState(false);
@@ -76,7 +76,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
 
   function edit(next: string) {
     setContent(next);
-    if (!chosen) setLanguage(detectLanguage(next) ?? "text");
+    if (!chosen) setLanguage(detectLanguage(next) ?? initial);
   }
 
   function pickLanguage(next: LanguageId) {

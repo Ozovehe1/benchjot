@@ -18,6 +18,7 @@ import {
 import { cn, displayTitle } from "@/lib/format";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
+import { afterDeletePath } from "@/lib/paths";
 import type { Entry, NoteIndexItem } from "@/lib/schemas";
 import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
@@ -145,7 +146,8 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
     if (!window.confirm("Delete this note and its code?")) return;
     await flushAll();
     await deleteEntry(entry.id);
-    router.replace("/");
+    // A note filed in a project (sub-notes included, they carry their own project_id) returns to that project.
+    router.replace(afterDeletePath(projectId));
   }
 
   return (

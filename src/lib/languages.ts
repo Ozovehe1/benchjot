@@ -113,8 +113,17 @@ export type LanguageId = (typeof LANGUAGES)[number]["id"];
 
 export const LANGUAGE_IDS = LANGUAGES.map((l) => l.id) as [LanguageId, ...LanguageId[]];
 
-/** New, empty code blocks start as plain text and pick a language from what is typed or pasted. */
-export const DEFAULT_LANGUAGE: LanguageId = "text";
+/** New code blocks start as Python; an empty one still switches to a language detected from what is typed or pasted. */
+export const DEFAULT_LANGUAGE: LanguageId = "python";
+
+/**
+ * Whether a block's language is settled on open: it has code, or the user picked a
+ * language other than the default (or plain text, the old default). Unsettled blocks
+ * follow detection and keep their own language when nothing is detected.
+ */
+export function languageChosen(language: string, content: string): boolean {
+  return content.trim() !== "" || (language !== DEFAULT_LANGUAGE && language !== "text");
+}
 
 export function languageConfig(id: string): LanguageConfig {
   return LANGUAGES.find((l) => l.id === id) ?? LANGUAGES[LANGUAGES.length - 1]!;
