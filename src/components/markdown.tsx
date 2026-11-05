@@ -8,6 +8,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { NoteRef } from "@/lib/links";
 import { remarkNoteLinks } from "@/lib/remark-note-links";
+import { noteBodyHref } from "@/lib/safe-next";
 
 /** Renders a note body. `notes` resolves [[note links]]: they open the note, or read muted if it's gone. */
 export function Markdown({ children, notes = [] }: { children: string; notes?: readonly NoteRef[] }) {
@@ -16,12 +17,15 @@ export function Markdown({ children, notes = [] }: { children: string; notes?: r
     <div className="prose-notes">
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
+        // Raw HTML stays text (no rehype-raw); links open only http(s), mailto and in-app paths.
+        urlTransform={noteBodyHref}
         rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: "ignore" }]]}
         components={{
           a: ({ node: _node, href, children: label, ...props }) => {
             const note = (props as Record<string, unknown>)["data-note"];
             if (note === "missing") return <span className="note-link-missing" title="No such note">{label}</span>;
             if (typeof note === "string" && href) return <Link href={href} className="note-link">{label}</Link>;
+            if (!href) return <span>{label}</span>; // a link noteBodyHref refused
             return <a {...props} href={href} target="_blank" rel="noreferrer noopener">{label}</a>;
           },
         }}

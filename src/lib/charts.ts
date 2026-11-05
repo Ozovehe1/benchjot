@@ -29,7 +29,8 @@ function script(src: string): Promise<void> {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const w = () => window as any;
+/** The chart libraries attach themselves to window (loaded as plain scripts). */
+const browserGlobals = () => window as any;
 
 export interface Theme {
   fg: string;
@@ -154,6 +155,43 @@ export async function pngToPdf(png: Blob, scale = 2): Promise<Blob> {
   return new Blob([pdf as BlobPart], { type: "application/pdf" });
 }
 
+const ALWAYS_REMOVED = ["toImage", "sendDataToCloud", "toggleSpikelines", "hoverClosestCartesian", "hoverCompareCartesian", "hoverClosest3d", "hoverClosestGl2d", "hoverClosestPie", "tableRotation", "resetCameraLastSave3d", "resetViews", "resetGeo", "zoomInGeo", "zoomOutGeo", "toggleHover"];
+/** Phones keep only buttons that work with a tap (user, 2026-11-05: hide those that don't function on a phone). */
+export const TOUCH_BUTTONS = ["zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d", "resetCameraDefault3d"];
+/** Desktop keeps the drag tools and reset (user, 2026-11-05); wheel zoom stays on. */
+export const DESKTOP_BUTTONS = ["zoom2d", "pan2d", "resetScale2d", "zoom3d", "pan3d", "orbitRotation", "resetCameraDefault3d"];
+const ALL_BUTTONS = ["zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d", "zoom3d", "pan3d", "orbitRotation", "resetCameraDefault3d"];
+
+export interface PlotlyControls {
+  displayModeBar: boolean | "hover";
+  /** Buttons taken off Plotly's modebar (downloads go through the page's format picker). */
+  remove: string[];
+  /** Phones: one-finger drag pans, and the title sits under the modebar instead of beneath it. */
+  dragmode?: "pan";
+  titleUnderBar?: boolean;
+}
+
+/** Plotly's modebar for a chart: none inline, the tap buttons on phones, the drag tools on desktop. */
+export function plotlyControls(interactive: boolean, coarse: boolean): PlotlyControls {
+  if (!interactive) return { displayModeBar: false, remove: ALWAYS_REMOVED };
+  const keep = coarse ? TOUCH_BUTTONS : DESKTOP_BUTTONS;
+  const remove = [...ALL_BUTTONS.filter((b) => !keep.includes(b)), ...ALWAYS_REMOVED];
+  // No hover on touch screens, so the bar shows all the time there.
+  return coarse ? { displayModeBar: true, remove, dragmode: "pan", titleUnderBar: true } : { displayModeBar: "hover", remove };
+}
+
+/** Phones: room above the plot for the modebar, the title just under it. */
+function titleUnderBar(layout: any) {
+  const titled = Boolean(layout.title?.text);
+  return {
+    ...layout,
+    margin: { ...(layout.margin ?? {}), t: titled ? 72 : 40 },
+    ...(titled ? { title: { ...layout.title, yref: "paper", y: 1, yanchor: "bottom", pad: { b: 8 } } } : {}),
+  };
+}
+
+const coarsePointer = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+
 /**
  * Draws a chart into `el`. `interactive` false gives a still chart (inline, in the
  * note) whose taps go to the viewer; true gives zoom, pan, hover and legend toggles.
@@ -162,18 +200,20 @@ export async function pngToPdf(png: Blob, scale = 2): Promise<Blob> {
 export async function drawChart(el: HTMLElement, lib: ChartLib, version: string, spec: any, opts: { interactive: boolean; theme: Theme | null }): Promise<DrawnChart> {
   if (lib === "plotly") {
     await script(PLOTLY);
-    const Plotly = w().Plotly;
-    await Plotly.newPlot(el, spec.data ?? [], themedPlotly(spec, opts.theme), {
+    const Plotly = browserGlobals().Plotly;
+    const controls = plotlyControls(opts.interactive, coarsePointer());
+    const layout = themedPlotly(spec, opts.theme);
+    const placed = controls.titleUnderBar ? titleUnderBar(layout) : layout;
+    await Plotly.newPlot(el, spec.data ?? [], controls.dragmode ? { ...placed, dragmode: controls.dragmode } : placed, {
       responsive: true,
       displaylogo: false,
       showLink: false,
       showSendToCloud: false,
       showEditInChartStudio: false,
       staticPlot: !opts.interactive,
-      displayModeBar: opts.interactive ? "hover" : false,
+      displayModeBar: controls.displayModeBar,
       scrollZoom: opts.interactive,
-      // Downloads go through the page's format picker.
-      modeBarButtonsToRemove: ["toImage", "sendDataToCloud"],
+      modeBarButtonsToRemove: controls.remove,
     });
     return {
       image: async (format, scale = 2) => {
@@ -198,7 +238,7 @@ export async function drawChart(el: HTMLElement, lib: ChartLib, version: string,
   }
   if (lib === "vega-lite") {
     for (const s of VEGA) await script(s);
-    const result = await w().vegaEmbed(el, { ...themedVega(spec, opts.theme), width: "container", autosize: { type: "fit", contains: "padding" } }, {
+    const result = await browserGlobals().vegaEmbed(el, { ...themedVega(spec, opts.theme), width: "container", autosize: { type: "fit", contains: "padding" } }, {
       actions: false,
       renderer: "svg",
       tooltip: opts.interactive ? undefined : false,
@@ -206,7 +246,7 @@ export async function drawChart(el: HTMLElement, lib: ChartLib, version: string,
     if (!opts.interactive) el.style.pointerEvents = "none";
     return {
       image: async (format, scale = 2) => {
-        const plain = await w().vegaEmbed(document.createElement("div"), spec, { actions: false, renderer: "canvas" });
+        const plain = await browserGlobals().vegaEmbed(document.createElement("div"), spec, { actions: false, renderer: "canvas" });
         try {
           if (format === "svg") return new Blob([await plain.view.toSVG()], { type: "image/svg+xml" });
           const png = await toBlob(await plain.view.toImageURL("png", scale));
@@ -221,7 +261,7 @@ export async function drawChart(el: HTMLElement, lib: ChartLib, version: string,
   // Bokeh: its own toolbar gives pan, zoom, reset, hover and legend toggles (as the figure was built).
   await script(bokehScript(version));
   el.id ||= `bk-${Math.random().toString(36).slice(2)}`;
-  const manager = await w().Bokeh.embed.embed_item(themedBokeh(spec, opts.theme, opts.interactive), el.id);
+  const manager = await browserGlobals().Bokeh.embed.embed_item(themedBokeh(spec, opts.theme, opts.interactive), el.id);
   // BokehJS 3 answers a ViewManager (iterable, with .roots); older ones an array of views.
   const views: any[] = manager?.roots ? [...manager.roots] : Array.isArray(manager) ? manager : manager ? [...manager] : [];
   if (!opts.interactive) el.style.pointerEvents = "none";

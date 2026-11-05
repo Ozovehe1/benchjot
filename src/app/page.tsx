@@ -1,8 +1,8 @@
 import { EntryList } from "@/components/entry-list";
-import { ExampleBadge } from "@/components/note-parts";
+import { SampleNoteTag } from "@/components/note-parts";
 import { NotePreview } from "@/components/note-preview";
 import { ButtonLink, Logo, TextLink } from "@/components/ui";
-import { APP_DESCRIPTION } from "@/config/app";
+import { ANDROID_APK_URL, ANDROID_APP_LABEL, APP_DESCRIPTION } from "@/config/app";
 import { sampleOutputPath } from "@/lib/paths";
 import { SAMPLE_ENTRY, SAMPLE_OUTPUT_URLS, SAMPLE_SNIPPETS } from "@/lib/sample-note";
 import { serverSupabase } from "@/lib/supabase/server";
@@ -31,7 +31,7 @@ export default async function Home() {
         </p>
         <figure aria-label="Sample note" className="mt-8 rounded-md border border-line px-4 pb-1">
           <figcaption className="flex pt-3">
-            <ExampleBadge />
+            <SampleNoteTag />
           </figcaption>
           <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} outputs={SAMPLE_HREFS} />
         </figure>
@@ -42,6 +42,9 @@ export default async function Home() {
           </ButtonLink>
           <TextLink href="/login" strong className="w-full justify-center">
             Sign in
+          </TextLink>
+          <TextLink href={ANDROID_APK_URL} prefetch={false} className="w-full justify-center">
+            {ANDROID_APP_LABEL}
           </TextLink>
         </nav>
       </main>

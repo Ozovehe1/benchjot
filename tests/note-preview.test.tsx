@@ -42,11 +42,25 @@ describe("landing note preview", () => {
 
   it("is marked as an example of the app, on the landing and its output pages", () => {
     const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
-    expect(page).toContain("<ExampleBadge />");
+    expect(page).toContain("<SampleNoteTag />");
     expect(readFileSync(new URL("../src/components/note-parts.tsx", import.meta.url), "utf8")).toContain(">Sample note</span>");
     expect(page).not.toMatch(/read-only|preview of the app/i);
     expect(page).toMatch(/<header[^>]*justify-between">\s*<Logo \/>\s*<TextLink href="\/login" strong>\s*Sign in/); // header: logo left, Sign in right
-    expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<ExampleBadge />}");
+    expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<SampleNoteTag />}");
+  });
+
+  it("links to the newest Android APK from one constant (landing and settings), no build tag", async () => {
+    const { ANDROID_APK_URL } = await import("@/config/app");
+    expect(ANDROID_APK_URL).toBe("https://github.com/Ozovehe1/benchjot-android/releases/latest/download/benchjot.apk");
+    const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+    const settings = readFileSync(new URL("../src/components/settings.tsx", import.meta.url), "utf8");
+    for (const src of [page, settings]) {
+      expect(src).toContain("href={ANDROID_APK_URL}");
+      expect(src).not.toMatch(/build-\d+|releases\/download\//);
+    }
+    // In the account links under the sample (48px TextLink), not in the header.
+    expect(page).toMatch(/<nav aria-label="Account"[\s\S]*href=\{ANDROID_APK_URL\}[\s\S]*<\/nav>/);
+    expect(page.slice(page.indexOf("<header"), page.indexOf("</header>"))).not.toContain("ANDROID_APK_URL");
   });
 
   it("folds long code to 12 lines with a toggle (the code block's shared frame)", () => {

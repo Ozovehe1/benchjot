@@ -1,11 +1,14 @@
 "use client";
 // The note body textarea. Typing [[ opens a list of note titles pinned above
-// the keyboard; picking one inserts [[Title|id]] (see src/lib/links.ts).
+// the keyboard; picking one inserts [[Title|id]] (see src/lib/links.ts). While it has
+// focus, the Markdown format bar sits above it (format-bar.tsx).
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { completeLink, linkQueryAt, linkSuggestions, type NoteRef } from "@/lib/links";
+import { applyFormat, type MarkdownFormat } from "@/lib/markdown-format";
 import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 import { cn } from "@/lib/format";
+import { FormatBar } from "./format-bar";
 
 interface Props {
   value: string;
@@ -22,6 +25,8 @@ export function NoteBody({ value, onChange, notes, selfId, label, textareaRef, c
   const [active, setActive] = useState(0);
   // Escape hides the list for the `[[` at this position until the caret leaves it.
   const [dismissed, setDismissed] = useState<number | null>(null);
+  // The format bar shows only while the body is being edited.
+  const [editing, setEditing] = useState(false);
 
   const typing = caret === null ? null : linkQueryAt(value, caret);
   const open = typing !== null && typing.start !== dismissed;
@@ -45,6 +50,17 @@ export function NoteBody({ value, onChange, notes, selfId, label, textareaRef, c
     });
   }
 
+  function format(f: MarkdownFormat) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const next = applyFormat(value, el.selectionStart, el.selectionEnd, f);
+    onChange(next.text);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(next.start, next.end);
+    });
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (!suggestions.length) return;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -62,6 +78,7 @@ export function NoteBody({ value, onChange, notes, selfId, label, textareaRef, c
 
   return (
     <>
+      {editing && <FormatBar onFormat={format} />}
       <textarea
         ref={textareaRef}
         value={value}
@@ -71,7 +88,11 @@ export function NoteBody({ value, onChange, notes, selfId, label, textareaRef, c
         }}
         onSelect={(e) => track(e.currentTarget)}
         onKeyDown={onKeyDown}
-        onBlur={() => setCaret(null)}
+        onFocus={() => setEditing(true)}
+        onBlur={() => {
+          setCaret(null);
+          setEditing(false);
+        }}
         placeholder={label}
         aria-label={label}
         aria-autocomplete="list"

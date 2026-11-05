@@ -13,7 +13,6 @@ const fileName = z.string().regex(/^\d{1,3}\.[a-z0-9]{2,5}$/, "Bad output file n
 const cell = z.union([z.string().max(400), z.number(), z.boolean(), z.null()]);
 
 export const IMAGE_FORMATS = ["png", "svg", "pdf", "jpg", "gif", "webp", "bmp"] as const;
-export type ImageFormat = (typeof IMAGE_FORMATS)[number];
 export const CHART_LIBS = ["plotly", "vega-lite", "bokeh"] as const;
 export type ChartLib = (typeof CHART_LIBS)[number];
 

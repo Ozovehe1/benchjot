@@ -13,7 +13,7 @@ interface SaveRegistry {
   flushAll: () => Promise<void>;
 }
 
-const Ctx = createContext<SaveRegistry | null>(null);
+const SaveContext = createContext<SaveRegistry | null>(null);
 
 const PRIORITY: SaveState[] = ["error", "saving", "pending", "saved", "idle"];
 
@@ -66,11 +66,11 @@ export function SaveStatusProvider({ children }: { children: React.ReactNode }) 
     () => ({ state: summary.state, error: summary.error, report, register, flushAll }),
     [summary, report, register, flushAll],
   );
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <SaveContext.Provider value={value}>{children}</SaveContext.Provider>;
 }
 
 export function useSaveStatus() {
-  const ctx = useContext(Ctx);
+  const ctx = useContext(SaveContext);
   if (!ctx) throw new Error("useSaveStatus must be used inside SaveStatusProvider");
   return ctx;
 }

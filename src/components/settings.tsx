@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { ANDROID_APK_URL, ANDROID_APP_LABEL } from "@/config/app";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/format";
 import { Column, TextButton, TextLink, TopBar } from "./ui";
@@ -47,6 +48,11 @@ export function Settings({ email, username }: { email: string; username: string 
         </Row>
         <Row label="Email">
           <span className="truncate">{email}</span>
+        </Row>
+        <Row label="Android">
+          <TextLink href={ANDROID_APK_URL} prefetch={false} strong>
+            {ANDROID_APP_LABEL}
+          </TextLink>
         </Row>
         <Row label="Theme">
           <div role="radiogroup" aria-label="Theme" className="flex gap-5">

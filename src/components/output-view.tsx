@@ -12,8 +12,8 @@ import { ChartView } from "./chart-view";
 import { TablePreview } from "./run-outputs";
 import { Button, Column, TextLink, TopBar } from "./ui";
 
-const MIN = 1;
-const MAX = 8;
+const MIN_IMAGE_ZOOM = 1;
+const MAX_IMAGE_ZOOM = 8;
 const HOME: View = { k: 1, x: 0, y: 0 };
 
 /** An image that pinches, drags and wheel-zooms (1x–8x); double-tap toggles 2.5x / fit. */
@@ -31,7 +31,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const r = el.getBoundingClientRect();
-      setView(clampPan(zoomAt(viewRef.current, Math.exp(-e.deltaY * 0.002), e.clientX - r.left, e.clientY - r.top, MIN, MAX), r));
+      setView(clampPan(zoomAt(viewRef.current, Math.exp(-e.deltaY * 0.002), e.clientX - r.left, e.clientY - r.top, MIN_IMAGE_ZOOM, MAX_IMAGE_ZOOM), r));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -47,7 +47,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     const now = Date.now();
     if (pointers.current.size === 1 && now - lastTap.current < 300) {
       const p = local(e);
-      setView(viewRef.current.k > 1.01 ? HOME : clampPan(zoomAt(HOME, 2.5, p.x, p.y, MIN, MAX), box.current!.getBoundingClientRect()));
+      setView(viewRef.current.k > 1.01 ? HOME : clampPan(zoomAt(HOME, 2.5, p.x, p.y, MIN_IMAGE_ZOOM, MAX_IMAGE_ZOOM), box.current!.getBoundingClientRect()));
       lastTap.current = 0;
     } else lastTap.current = now;
   }
@@ -57,7 +57,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     const p = local(e);
     const other = [...pointers.current.entries()].find(([id]) => id !== e.pointerId)?.[1] ?? null;
     pointers.current.set(e.pointerId, p);
-    setView(clampPan(dragStep(viewRef.current, prev, p, other, MIN, MAX), box.current!.getBoundingClientRect()));
+    setView(clampPan(dragStep(viewRef.current, prev, p, other, MIN_IMAGE_ZOOM, MAX_IMAGE_ZOOM), box.current!.getBoundingClientRect()));
   }
   const up = (e: React.PointerEvent) => void pointers.current.delete(e.pointerId);
 
