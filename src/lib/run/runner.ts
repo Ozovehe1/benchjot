@@ -6,6 +6,7 @@ import { cleanPythonTraceback, jsErrorLine, pythonErrorLine } from "./errors";
 import { transpile } from "./transpile";
 
 import { RUN_TIMEOUT_MS, type BrowserLanguage, type RunEvents, type RunHandle, type RunResult } from "./types";
+import { messageFor } from "../user-message";
 
 let pythonWorker: Worker | null = null;
 let nextId = 1;
@@ -84,7 +85,8 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
     finish = resolve;
   });
   w.addEventListener("message", onMessage);
-  w.addEventListener("error", (e) => end({ outcome: "error", error: { text: e.message || "The runner failed to start.", line: null }, ms: elapsed() }), { once: true });
+  // A message here is the user's own uncaught error (shown as is); none means the worker itself failed to load.
+  w.addEventListener("error", (e) => end({ outcome: "error", error: { text: e.message || messageFor("unknown", "runner_start"), line: null }, ms: elapsed() }), { once: true });
   w.postMessage({ id, code: source });
   return { done, stop: () => kill("stopped") };
 }

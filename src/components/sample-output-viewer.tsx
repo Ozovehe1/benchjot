@@ -8,9 +8,9 @@ import { OutputView } from "./output-view";
 
 async function read(name: string): Promise<Uint8Array> {
   const url = SAMPLE_OUTPUT_URLS[name];
-  if (!url) throw new Error("No such file");
+  if (!url) throw Object.assign(new Error("no such sample file"), { status: 404 });
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Couldn't download the output (${res.status})`);
+  if (!res.ok) throw Object.assign(new Error(`sample file ${res.status}`), { status: res.status });
   return new Uint8Array(await res.arrayBuffer());
 }
 

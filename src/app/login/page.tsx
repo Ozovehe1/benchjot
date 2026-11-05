@@ -7,6 +7,7 @@ import { safeNext } from "@/lib/safe-next";
 import { isValidUsername, looksLikeEmail, normalizeUsername, USERNAME_HINT } from "@/lib/username";
 import { Button, Logo, TextButton } from "@/components/ui";
 import { GoogleButton } from "@/components/google-button";
+import { userMessage, type ErrorAction } from "@/lib/user-message";
 
 const email = z.email("Enter a valid email.");
 const password = z.string().min(8, "Password needs at least 8 characters.");
@@ -42,12 +43,20 @@ function LoginForm() {
     setLoading(false);
     setError(message);
   }
+  /** A Supabase failure in plain words; the raw error goes to the console only. */
+  function failWith(e: unknown, action: ErrorAction) {
+    const code = (e as { code?: string } | null)?.code;
+    if (code === "invalid_credentials") return fail(WRONG);
+    if (code === "email_address_invalid") return fail("Enter a valid email.");
+    if (code === "weak_password") return fail("Choose a stronger password.");
+    return fail(userMessage(e, action));
+  }
 
   async function google() {
     setError(null);
     setLoading(true);
     const { error } = await supabase().auth.signInWithOAuth({ provider: "google", options: { redirectTo: returnUrl(next) } });
-    if (error) fail(error.message);
+    if (error) failWith(error, "sign_in");
   }
 
   async function submit(e: React.FormEvent) {
@@ -64,27 +73,27 @@ function LoginForm() {
       let address = id;
       if (!looksLikeEmail(id)) {
         const { data, error } = await sb.rpc("login_email", { username: normalizeUsername(id), password: pass });
-        if (error) return fail(error.message);
+        if (error) return failWith(error, "sign_in");
         if (!data) return fail(WRONG);
         address = data as string;
       }
       const { error } = await sb.auth.signInWithPassword({ email: address, password: pass });
       if (error?.code === "email_not_confirmed") return fail(UNCONFIRMED);
-      if (error) return fail(error.message === "Invalid login credentials" ? WRONG : error.message);
+      if (error) return error.message === "Invalid login credentials" ? fail(WRONG) : failWith(error, "sign_in");
     } else {
       const name = normalizeUsername(username);
       if (!isValidUsername(name)) return fail(`Username: ${USERNAME_HINT}`);
       const em = email.safeParse(identifier.trim());
       if (!em.success) return fail(em.error.issues[0]?.message ?? "Enter a valid email.");
       const { data: free, error: checkError } = await sb.rpc("username_available", { name });
-      if (checkError) return fail(checkError.message);
+      if (checkError) return failWith(checkError, "sign_up");
       if (!free) return fail("That username is taken.");
       const { data, error } = await sb.auth.signUp({
         email: em.data,
         password: pass,
         options: { emailRedirectTo: returnUrl(next), data: { username: name } },
       });
-      if (error) return fail(error.message);
+      if (error) return failWith(error, "sign_up");
       if (!data.session) {
         setLoading(false);
         setMode("signin");
@@ -100,7 +109,7 @@ function LoginForm() {
     if (!em.success) return setError("Enter your email to resend the link.");
     setLoading(true);
     const { error } = await supabase().auth.resend({ type: "signup", email: em.data, options: { emailRedirectTo: returnUrl(next) } });
-    if (error) return fail(error.message);
+    if (error) return failWith(error, "resend");
     setLoading(false);
     setError(null);
     setSent(em.data);

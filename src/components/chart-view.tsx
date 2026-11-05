@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { drawChart, readTheme, type DrawnChart } from "@/lib/charts";
 import type { ChartOutput } from "@/lib/run/outputs";
 import { cn } from "@/lib/format";
+import { userMessage } from "@/lib/user-message";
 
 /** A chart drawn from its saved spec (fetched from `specUrl`). Interactive in the viewer, still inline. */
 export function ChartView({
@@ -30,13 +31,15 @@ export function ChartView({
     const host = el.current;
     (async () => {
       try {
-        const spec = await (await fetch(specUrl)).json();
+        const res = await fetch(specUrl);
+        if (!res.ok) throw Object.assign(new Error(`chart spec ${res.status}`), { status: res.status });
+        const spec = await res.json();
         if (cancelled) return;
         chart = await drawChart(host, item.lib, item.version, spec, { interactive, theme: readTheme(host) });
         if (cancelled) chart.dispose();
         else ready.current?.(chart);
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        if (!cancelled) setError(userMessage(e, "load"));
       }
     })();
     return () => {

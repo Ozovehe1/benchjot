@@ -127,7 +127,7 @@ export function NoteMap() {
         />
       </Column>
       <div ref={box} className="relative min-h-0 flex-1 touch-none select-none overflow-hidden border-t border-line">
-        {(notesError || linksError) && <p role="alert" className="p-5 text-sm">Could not load the map.</p>}
+        {(notesError || linksError) && <p role="alert" className="p-5 text-sm">Couldn’t load the map. Try again.</p>}
         {notes && notes.length === 0 && <p className="p-5 text-sm text-muted">No notes yet.</p>}
         {graph && size && (
           <svg

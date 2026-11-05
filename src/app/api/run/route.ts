@@ -2,7 +2,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runOnModal } from "@/lib/server/modal";
-import { jsonError, readBody, requireSession } from "@/lib/server/session";
+import { apiError, jsonError, readBody, requireSession } from "@/lib/server/session";
+import { errorFacts, upstreamFailure } from "@/lib/user-message";
 import { DirectiveError, LIMITS, parseDirectives, runsOnServer } from "@/lib/run/server-languages";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ const body = z.object({
 export async function POST(request: Request) {
   const session = await requireSession(request);
   if (session instanceof NextResponse) return session;
-  if (session.plan !== "pro") return jsonError(403, "Server runs are part of Pro");
+  if (session.plan !== "pro") return jsonError(403, "Server runs are part of Pro.");
 
   const input = await readBody(request, (v) => body.safeParse(v));
   if (input instanceof NextResponse) return input;
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json(await runOnModal(input.language, input.code, directives, request.signal));
   } catch (e) {
     console.error("server run failed", e);
-    return jsonError(502, "The server run couldn't start. Try again in a moment.");
+    const f = upstreamFailure(errorFacts(e));
+    return apiError(f.kind, f.status, "run_server", f.retryAfter);
   }
 }

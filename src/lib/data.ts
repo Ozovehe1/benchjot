@@ -6,6 +6,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 import type { z } from "zod";
 import { supabase } from "./supabase/client";
 import { searchTerms } from "./search";
+import { FriendlyError } from "./user-message";
 import type { SourcedLink } from "./links";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { asPlan, type Plan } from "./plan";
@@ -28,17 +29,18 @@ import {
   type SnippetPatch,
 } from "./schemas";
 
+/** A failed Supabase call; the raw error (code, details, HTTP status) is its cause. Shown only via userMessage. */
 export class DataError extends Error {}
 
-function check<T>(res: { data: T | null; error: { message: string } | null }): T {
-  if (res.error) throw new DataError(res.error.message);
-  if (res.data === null) throw new DataError("Not found");
+function check<T>(res: { data: T | null; error: { message: string } | null; status?: number }): T {
+  if (res.error) throw new DataError(res.error.message, { cause: { ...res.error, status: res.status } });
+  if (res.data === null) throw new DataError("Not found", { cause: { code: "PGRST116", status: 404 } });
   return res.data;
 }
 
 function validate<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const r = schema.safeParse(input);
-  if (!r.success) throw new DataError(firstIssue(r.error));
+  if (!r.success) throw new FriendlyError(firstIssue(r.error)); // the schema's own words
   return r.data;
 }
 

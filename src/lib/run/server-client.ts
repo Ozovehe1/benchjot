@@ -6,6 +6,7 @@ import type { Outcome } from "../outcome";
 import type { ServerRunResponse } from "./server-languages";
 import type { CapturedOutputs, Manifest } from "./outputs";
 import type { RunHandle, RunResult, Stream } from "./types";
+import { FriendlyError, userMessage } from "../user-message";
 
 function fromBase64(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -24,8 +25,13 @@ export function serverOutputs(o: ServerRunResponse["outputs"]): CapturedOutputs 
 
 async function post<T>(url: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  const data = (await res.json().catch(() => ({}))) as T & { error?: unknown; code?: unknown; retryAfter?: unknown };
+  if (!res.ok) {
+    // The route's own text ("notice") shows as is; any other answer is classified by its code and status.
+    if (data.code === "notice" && typeof data.error === "string") throw new FriendlyError(data.error);
+    const retryAfter = typeof data.retryAfter === "number" ? data.retryAfter : Number(res.headers.get("retry-after")) || undefined;
+    throw Object.assign(new Error(`${url} answered ${res.status}`), { status: res.status, code: typeof data.code === "string" ? data.code : undefined, retryAfter });
+  }
   return data;
 }
 
@@ -49,7 +55,7 @@ export function runOnServer(language: string, code: string, onOutput: (stream: S
       return result;
     },
     (e: Error): RunResult =>
-      abort.signal.aborted ? { outcome: "stopped", error: null, ms: Date.now() - started } : { outcome: "error", error: { text: e.message, line: null }, ms: Date.now() - started },
+      abort.signal.aborted ? { outcome: "stopped", error: null, ms: Date.now() - started } : { outcome: "error", error: { text: userMessage(e, "run_server"), line: null }, ms: Date.now() - started },
   );
   return { done, stop: () => abort.abort() };
 }

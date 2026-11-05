@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { isValidUsername, normalizeUsername, USERNAME_HINT } from "@/lib/username";
 import { Button, Logo } from "./ui";
+import { userMessage } from "@/lib/user-message";
 
 /** One field: pick a username, then into the app. */
 export function ChooseUsername({ suggestion }: { suggestion: string }) {
@@ -20,7 +21,7 @@ export function ChooseUsername({ suggestion }: { suggestion: string }) {
     setError(null);
     const { error } = await supabase().rpc("set_username", { name: wanted });
     setSaving(false);
-    if (error) return setError(error.message);
+    if (error) return setError(userMessage(error, "username"));
     router.replace("/");
     router.refresh();
   }

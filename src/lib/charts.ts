@@ -5,6 +5,7 @@
 // the Android renderer does, so a chart looks the same on both.
 import { deflateRgb, imagePdf } from "./pdf";
 import type { ChartLib } from "./run/outputs";
+import { FriendlyError } from "./user-message";
 
 const PLOTLY = "https://cdn.plot.ly/plotly-4.1.1.min.js";
 const VEGA = ["https://cdn.jsdelivr.net/npm/vega@6", "https://cdn.jsdelivr.net/npm/vega-lite@6", "https://cdn.jsdelivr.net/npm/vega-embed@7"];
@@ -19,7 +20,7 @@ function script(src: string): Promise<void> {
       s.onload = () => resolve();
       s.onerror = () => {
         loaded.delete(src);
-        reject(new Error(`Couldn't load ${new URL(src).hostname}`));
+        reject(Object.assign(new Error(`script ${new URL(src).hostname} failed to load`), { code: "network" }));
       };
       document.head.append(s);
     });
@@ -267,10 +268,10 @@ export async function drawChart(el: HTMLElement, lib: ChartLib, version: string,
   if (!opts.interactive) el.style.pointerEvents = "none";
   return {
     image: async (format) => {
-      if (format === "svg") throw new Error("Bokeh charts download as PNG, JPG or WebP");
+      if (format === "svg") throw new FriendlyError("Bokeh charts download as PNG, JPG or WebP.");
       // BokehJS draws into canvases inside shadow roots; its own export composites them.
       const view = views[0];
-      if (!view?.export) throw new Error("Nothing to export yet");
+      if (!view?.export) throw new FriendlyError("Nothing to download yet. Try again in a moment.");
       const png: Blob = await view.export("png").to_blob();
       return format === "png" ? png : convertImage(png, format);
     },

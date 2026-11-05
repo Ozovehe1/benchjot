@@ -8,7 +8,7 @@ export async function allRows<T>(page: (from: number, to: number) => PromiseLike
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_ROWS) {
     const res = await page(from, from + PAGE_ROWS - 1);
-    if (res.error) throw new Error(res.error.message);
+    if (res.error) throw new Error(res.error.message, { cause: res.error }); // shown via userMessage, never raw
     const got = (res.data ?? []) as T[];
     rows.push(...got);
     if (got.length < PAGE_ROWS) return rows;

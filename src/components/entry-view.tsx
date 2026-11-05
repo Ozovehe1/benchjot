@@ -29,6 +29,7 @@ import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
 import { Column, Segmented, TextButton, TextLink, TopBar } from "./ui";
+import { userMessage } from "@/lib/user-message";
 
 const NO_NOTES: NoteIndexItem[] = [];
 
@@ -73,7 +74,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       await updateEntry(entry.id, { outcome: next });
     } catch (e) {
       setOutcome(previous);
-      setOutcomeError(e instanceof Error ? e.message : "Could not save the outcome.");
+      setOutcomeError(userMessage(e, "outcome"));
     }
   }
   const { data: projects } = useProjects();
@@ -98,7 +99,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       await updateEntry(entry.id, { parent_id: next });
     } catch (e) {
       setParentId(previous);
-      setParentError(e instanceof Error ? e.message : "Could not set the parent.");
+      setParentError(userMessage(e, "parent"));
     }
   }
 
@@ -116,7 +117,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       await updateEntry(entry.id, { project_id: next || null });
     } catch (e) {
       setProjectId(previous);
-      setMoveError(e instanceof Error ? e.message : "Could not move the note.");
+      setMoveError(userMessage(e, "move"));
     }
   }
   const titleRef = useAutosize(title);

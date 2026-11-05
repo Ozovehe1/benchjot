@@ -19,6 +19,7 @@ import { RunOutput } from "./run-output";
 import { RunOutputs } from "./run-outputs";
 import { SnippetHeader } from "./snippet-header";
 import { Button, TextButton } from "./ui";
+import { userMessage } from "@/lib/user-message";
 
 const CodeEditor = dynamic(() => import("./code-editor").then((m) => m.CodeEditor), {
   ssr: false,
@@ -77,7 +78,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
     outputStore()
       .then((m) => m.signOutputs(savedOutputs))
       .then((u) => !gone && setSigned(u))
-      .catch((e: Error) => !gone && setSaveError(`Figures couldn’t load: ${e.message}`));
+      .catch((e: unknown) => !gone && setSaveError(userMessage(e, "load_figures")));
     return () => {
       gone = true;
     };
@@ -96,7 +97,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
   /** Saves (or clears) the latest run; a failure shows under the output, the run itself still shows. */
   function persist(run: Parameters<typeof saveLastRun>[1]) {
     setSaveError(null);
-    saveLastRun(snippet, run).catch((e: Error) => setSaveError(`Output not saved: ${e.message}`));
+    saveLastRun(snippet, run).catch((e: unknown) => setSaveError(userMessage(e, "save_output")));
   }
 
   /** Uploads the run's outputs, saves the run, then deletes the run it replaced. */
@@ -109,7 +110,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
         const [{ addStaticRenders }, m] = await Promise.all([import("@/lib/charts"), outputStore()]);
         saved = await m.uploadOutputs(snippet.id, await addStaticRenders(r.outputs));
       } catch (e) {
-        setSaveError(`Figures not saved: ${(e as Error).message}`);
+        setSaveError(userMessage(e, "save_figures"));
       }
     }
     try {
@@ -118,7 +119,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
       setHideSaved(false);
       if (previous && previous.dir !== saved?.dir) void (await outputStore()).deleteOutputs(previous).catch(() => {});
     } catch (e) {
-      setSaveError(`Output not saved: ${(e as Error).message}`);
+      setSaveError(userMessage(e, "save_output"));
       if (saved) void (await outputStore()).deleteOutputs(saved).catch(() => {});
     }
   }
@@ -198,7 +199,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
       const answer = await requestFix(language, content, lastError, outcome);
       setFix({ before: content, code: answer.code, summary: answer.summary });
     } catch (e) {
-      setFix({ before: content, code: content, summary: (e as Error).message });
+      setFix({ before: content, code: content, summary: userMessage(e, "fix") });
     } finally {
       setFixing(false);
     }

@@ -7,3 +7,7 @@ export const APP_DESCRIPTION = "A research jotter for your code.";
 // release (not a draft or prerelease); the Android repo's release workflow fails if either changes.
 export const ANDROID_APK_URL = "https://github.com/Ozovehe1/benchjot-android/releases/latest/download/benchjot.apk";
 export const ANDROID_APP_LABEL = "Get the Android app";
+
+// Fix requests per signed-in user (counted in the database by fix_take; /api/fix answers 429 with
+// retryAfter past either). Groq's own limits are on top of these.
+export const FIX_RATE = { perMinute: 6, perDay: 100 } as const;

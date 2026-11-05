@@ -14,7 +14,7 @@ const SIGNED_SECONDS = 60 * 60;
 async function userId(): Promise<string> {
   const { data } = await supabase().auth.getSession();
   const id = data.session?.user.id;
-  if (!id) throw new Error("Sign in to save outputs");
+  if (!id) throw Object.assign(new Error("no session for outputs"), { status: 401 });
   return id;
 }
 
@@ -29,7 +29,7 @@ export async function uploadOutputs(snippetId: string, captured: CapturedOutputs
       const data = captured.files[name];
       if (!data) throw new Error(`Output file ${name} is missing`);
       const { error } = await bucket().upload(outputPath(dir, name), data, { contentType: MIME[ext(name)] ?? "application/octet-stream", upsert: false });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message, { cause: error });
     }),
   );
   return { ...parsed.data, dir };
@@ -47,7 +47,7 @@ export async function signOutputs(o: SavedOutputs): Promise<Record<string, strin
   const paths = outputPaths(o);
   if (!paths.length) return {};
   const { data, error } = await bucket().createSignedUrls(paths, SIGNED_SECONDS);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message, { cause: error });
   const urls: Record<string, string> = {};
   for (const row of data ?? []) if (row.signedUrl && row.path) urls[row.path.slice(o.dir.length + 1)] = row.signedUrl;
   return urls;
@@ -60,7 +60,7 @@ export function useOutputUrls(o: SavedOutputs | null | undefined) {
 /** One stored file's bytes. */
 export async function fetchOutput(o: SavedOutputs, name: string): Promise<Uint8Array> {
   const { data, error } = await bucket().download(outputPath(o.dir, name));
-  if (error || !data) throw new Error(error?.message ?? "Couldn't download the output");
+  if (error || !data) throw new Error(error?.message ?? "output download returned nothing", { cause: error ?? undefined });
   return new Uint8Array(await data.arrayBuffer());
 }
 

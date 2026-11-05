@@ -11,6 +11,7 @@ import { saveBlob } from "@/lib/save-file";
 import { ChartView } from "./chart-view";
 import { TablePreview } from "./run-outputs";
 import { Button, Column, TextLink, TopBar } from "./ui";
+import { FriendlyError, userMessage } from "@/lib/user-message";
 
 const MIN_IMAGE_ZOOM = 1;
 const MAX_IMAGE_ZOOM = 8;
@@ -102,7 +103,7 @@ async function download(item: OutputItem, read: Read, f: DownloadFormat, chart: 
     return saveBlob(name, await convertImage(new Blob([data as BlobPart], { type: MIME.png }), f.format, "#ffffff"));
   }
   if (item.kind === "table") return saveBlob(name, new Blob([previewCsv(item)], { type: MIME.csv }));
-  if (!chart) throw new Error("The chart is still drawing");
+  if (!chart) throw new FriendlyError("The chart is still drawing. Try again in a moment.");
   if (f.format === "pdf") return saveBlob(name, await pngToPdf(await chart.image("png", 2), 2));
   return saveBlob(name, await chart.image(f.format as "png" | "jpg" | "webp" | "svg"));
 }
@@ -162,7 +163,7 @@ export function OutputView({
     try {
       await download(item, read, chosen, chart.current, downloadName(base, index, chosen.format));
     } catch (e) {
-      setError((e as Error).message);
+      setError(userMessage(e, "download"));
     } finally {
       setBusy(false);
     }

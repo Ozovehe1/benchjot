@@ -2,6 +2,7 @@
 // Autosave: each editor registers a debounced saver; a shared context
 // aggregates their status for the header indicator and lets Ctrl+S flush all.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { userMessage } from "./user-message";
 
 export type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
 
@@ -109,7 +110,7 @@ export function useAutosave<T>(value: T, save: (v: T) => Promise<unknown>, opts:
         ok = true;
         report(id, JSON.stringify(latest.current) === s ? "saved" : "pending");
       } catch (err) {
-        report(id, "error", err instanceof Error ? err.message : "Could not save");
+        report(id, "error", userMessage(err, "save_note"));
       } finally {
         inFlight.current = null;
       }

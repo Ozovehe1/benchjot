@@ -4,6 +4,7 @@
 import { useRef, useState } from "react";
 import { readCodeFiles, type CodeFile } from "@/lib/upload";
 import { TextButton } from "./ui";
+import { userMessage } from "@/lib/user-message";
 
 export function FilePicker({
   label,
@@ -26,7 +27,7 @@ export function FilePicker({
       if (files.length) await onFiles(files);
       onError(errors.length ? errors.join(" ") : null);
     } catch (e) {
-      onError(e instanceof Error ? e.message : "Upload failed.");
+      onError(userMessage(e, "upload"));
     } finally {
       setBusy(false);
       if (input.current) input.current.value = "";

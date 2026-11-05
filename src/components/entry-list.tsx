@@ -9,6 +9,7 @@ import type { Project } from "@/lib/schemas";
 import type { CodeFile } from "@/lib/upload";
 import { FilePicker } from "./file-picker";
 import { Button, Column, OutcomeDot, Segmented, TextButton, TextLink, TopBar } from "./ui";
+import { errorFacts, userMessage, userText } from "@/lib/user-message";
 
 const row = "flex items-baseline justify-between gap-6 py-4";
 
@@ -37,7 +38,7 @@ export function EntryList({ project }: { project?: Project }) {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(userMessage(e));
     } finally {
       setBusy(false);
     }
@@ -124,7 +125,7 @@ export function EntryList({ project }: { project?: Project }) {
       />
       {(error || loadError) && (
         <p role="alert" className="py-3 text-sm">
-          {error ?? "Could not load notes."}
+          {error ?? userText(errorFacts(loadError), "load_notes")}
         </p>
       )}
 

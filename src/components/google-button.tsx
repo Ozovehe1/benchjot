@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { GOOGLE_CLIENT_ID } from "@/lib/env";
 import { Button } from "@/components/ui";
+import { userMessage } from "@/lib/user-message";
 
 /**
  * Sign in with Google on Benchjot's own origin (Google Identity Services), so
@@ -65,7 +66,7 @@ export function GoogleButton(props: {
           callback: async ({ credential }: { credential?: string }) => {
             if (!credential) return handlers.current.onError("Google sign-in didn't finish. Try again.");
             const { error } = await supabase().auth.signInWithIdToken({ provider: "google", token: credential, nonce });
-            if (error) handlers.current.onError(error.message);
+            if (error) handlers.current.onError(userMessage(error, "sign_in"));
             else handlers.current.onSignedIn();
           },
         });
