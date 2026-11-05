@@ -16,7 +16,7 @@ export default async function Home() {
   } = await (await serverSupabase()).auth.getUser();
   if (user) return <EntryList />;
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-5 pb-6">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-5 pb-6 lg:max-w-[1080px] lg:px-10">
       <header className="flex h-14 items-center justify-between">
         <Logo />
         <TextLink href="/login" strong>
@@ -24,19 +24,22 @@ export default async function Home() {
         </TextLink>
       </header>
 
-      <main className="flex flex-1 flex-col justify-center pb-8">
-        <h1 className="text-[28px] font-semibold leading-[1.15] tracking-tight">{APP_DESCRIPTION}</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          Write notes, keep snippets, organise them in projects, and run Python and JavaScript right on your phone.
-        </p>
-        <figure aria-label="Sample note" className="mt-8 rounded-md border border-line px-4 pb-1">
+      {/* Phones: one column (pitch, sample, account links). Desktop: pitch and links left, sample right. */}
+      <main className="flex flex-1 flex-col justify-center pb-8 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:content-center lg:gap-x-16">
+        <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+          <h1 className="text-[28px] font-semibold leading-[1.15] tracking-tight lg:text-[40px]">{APP_DESCRIPTION}</h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted lg:text-[17px]">
+            Write notes, keep snippets, organise them in projects, and run Python and JavaScript right on your phone.
+          </p>
+        </div>
+        <figure aria-label="Sample note" className="mt-8 rounded-md border border-line px-4 pb-1 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">
           <figcaption className="flex pt-3">
             <SampleNoteTag />
           </figcaption>
           <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} outputs={SAMPLE_HREFS} />
         </figure>
 
-        <nav aria-label="Account" className="mt-6 flex flex-col">
+        <nav aria-label="Account" className="mt-6 flex flex-col lg:col-start-1 lg:row-start-2 lg:max-w-[360px] lg:self-start lg:mt-8">
           <ButtonLink href="/login?mode=signup" className="w-full">
             Create account
           </ButtonLink>

@@ -49,6 +49,16 @@ describe("landing note preview", () => {
     expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<SampleNoteTag />}");
   });
 
+  it("phones read pitch, sample, then account links; desktop puts the sample in a right-hand column", () => {
+    const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+    const at = (s: string) => page.indexOf(s);
+    expect(at("<h1")).toBeLessThan(at("<figure"));
+    expect(at("<figure")).toBeLessThan(at('<nav aria-label="Account"'));
+    expect(page).toMatch(/<figure[^>]*lg:col-start-2/);
+    expect(page).toMatch(/<nav aria-label="Account"[^>]*lg:col-start-1/);
+    expect(page).toContain("lg:max-w-[1080px]");
+  });
+
   it("links to the newest Android APK from one constant (landing and settings), no build tag", async () => {
     const { ANDROID_APK_URL } = await import("@/config/app");
     expect(ANDROID_APK_URL).toBe("https://github.com/Ozovehe1/benchjot-android/releases/latest/download/benchjot.apk");
