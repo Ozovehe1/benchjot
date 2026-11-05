@@ -30,7 +30,7 @@ export default async function Home() {
           Write notes, keep snippets, organise them in projects, and run Python and JavaScript right on your phone.
         </p>
         <figure aria-label="Sample note" className="mt-8 rounded-md border border-line px-4 pb-1">
-          <figcaption className="flex min-h-12 items-center">
+          <figcaption className="flex pt-3">
             <ExampleBadge />
           </figcaption>
           <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} outputs={SAMPLE_HREFS} />
