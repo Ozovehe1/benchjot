@@ -17,8 +17,13 @@ export const PYTHON_PREINSTALLED = ["numpy", "pandas", "scipy", "matplotlib", "s
 
 /** Server runs return figures, tables and charts inline after this mark on stdout (bj_capture.BUNDLE_MARK). */
 export const BUNDLE_MARK = "\n\u0000BJ-OUTPUTS\u0000";
-/** Their total size, so the API answer stays under the hosting limit (about 4.5 MB). */
-export const SERVER_OUTPUT_BYTES = 3 * 1024 * 1024;
+/**
+ * Their total size. The answer carries them as base64 (4/3 larger) next to the output text
+ * and the manifest, and must stay under the hosting limit (RESPONSE_LIMIT_BYTES).
+ */
+export const SERVER_OUTPUT_BYTES = 2.5 * 1024 * 1024;
+/** Vercel's limit on a function's response body. */
+export const RESPONSE_LIMIT_BYTES = 4.5 * 1000 * 1000;
 
 interface ServerLanguage {
   image: ImageId;
@@ -107,10 +112,23 @@ export function parseDirectives(language: ServerLanguageId, code: string): Direc
 /** Exit code of coreutils `timeout` when the time limit is hit. */
 export const TIMEOUT_EXIT = 124;
 
+/** Where a run's files are written and its command runs. */
+export const WORKDIR = "/tmp/bj";
+
 /**
- * The one shell command a sandbox runs. The code arrives in $BJ_CODE (never
- * interpolated), packages are validated by parseDirectives, so nothing user
- * supplied is spliced into the shell unquoted.
+ * The files a run starts from, by path relative to WORKDIR: the code, and for Python
+ * the capture module. They are written into the sandbox as files, so code of any
+ * allowed size never passes through the command line or the environment.
+ */
+export function sourceFiles(language: ServerLanguageId, code: string, capture: string): Record<string, string> {
+  const spec = SERVER_LANGUAGES[language];
+  return language === "python" ? { [spec.file]: code, "bj_capture.py": capture } : { [spec.file]: code };
+}
+
+/**
+ * The one shell command a run executes, after sourceFiles are in WORKDIR. Packages
+ * are validated by parseDirectives, so nothing user supplied is spliced into the
+ * shell unquoted.
  */
 export function buildCommand(language: ServerLanguageId, d: Directives): string[] {
   const spec = SERVER_LANGUAGES[language];
@@ -118,9 +136,7 @@ export function buildCommand(language: ServerLanguageId, d: Directives): string[
     ? `pip install -q --disable-pip-version-check --root-user-action=ignore ${d.packages.map((p) => `'${p}'`).join(" ")} 1>&2 && `
     : "";
   const body = `${pip}${spec.run}`;
-  const capture = language === "python" ? `printf '%s' "$BJ_CAPTURE" > bj_capture.py && ` : "";
-  const script = `mkdir -p /tmp/bj && cd /tmp/bj && printf '%s' "$BJ_CODE" > ${spec.file} && ${capture}exec timeout -s TERM ${d.timeoutSec}s sh -c '${body.replace(/'/g, `'\\''`)}'`;
-  return ["sh", "-c", script];
+  return ["sh", "-c", `cd ${WORKDIR} && exec timeout -s TERM ${d.timeoutSec}s sh -c '${body.replace(/'/g, `'\\''`)}'`];
 }
 
 /** The user's line from a failed run's stderr, or null. */

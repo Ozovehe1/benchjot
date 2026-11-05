@@ -3,6 +3,8 @@
 
     E2E_EMAIL=... E2E_PASSWORD=... BASE_URL=http://localhost:3000 python scripts/e2e_outputs.py
 
+E2E_WHERE=server runs the block with "Run on server" instead (the account must be Pro).
+
 Throwaway account. Runs one Python block that makes a matplotlib figure, a pandas
 table, a Plotly, an Altair and a Bokeh chart, plus a PIL image. Checks: every output
 shows under the block in order, survives a reload (stored in Storage), opens on its
@@ -23,6 +25,7 @@ BASE = os.environ.get("BASE_URL", "http://localhost:3000").rstrip("/")
 EMAIL = os.environ["E2E_EMAIL"]
 PASSWORD = os.environ["E2E_PASSWORD"]
 SHOTS = os.environ.get("SHOTS_DIR", "screenshots")
+RUN_BUTTON = "Run on server" if os.environ.get("E2E_WHERE") == "server" else "Run"
 CODE = """import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
@@ -126,10 +129,10 @@ def main():
             lambda r: "/rest/v1/snippets" in r.url and r.request.method == "PATCH" and '"outputs"' in (r.request.post_data or ""),
             timeout=240_000,
         ) as resp:
-            page.get_by_role("button", name="Run", exact=True).click()
+            page.get_by_role("button", name=RUN_BUTTON, exact=True).click()
         assert resp.value.ok, (resp.value.status, resp.value.text())
         expect(page.get_by_role("region", name="Output")).to_contain_text("done")
-        step("ran: outputs uploaded and the run saved with them")
+        step(f"ran ({RUN_BUTTON}): outputs uploaded and the run saved with them")
 
         section = page.get_by_role("region", name="Figures and tables")
         links = section.get_by_role("link")

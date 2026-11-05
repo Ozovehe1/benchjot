@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCommand, capOutput, DirectiveError, LIMITS, outcomeOf, parseDirectives, runsOnServer, serverErrorLine, SERVER_LANGUAGES } from "@/lib/run/server-languages";
+import { buildCommand, capOutput, DirectiveError, LIMITS, outcomeOf, parseDirectives, RESPONSE_LIMIT_BYTES, runsOnServer, serverErrorLine, SERVER_LANGUAGES, SERVER_OUTPUT_BYTES, sourceFiles, WORKDIR } from "@/lib/run/server-languages";
 import { toRunResult } from "@/lib/run/server-client";
 import { LANGUAGE_IDS } from "@/lib/languages";
 
@@ -33,12 +33,15 @@ describe("parseDirectives", () => {
 });
 
 describe("buildCommand", () => {
-  it("passes code through the environment, never the command line", () => {
+  it("runs the files in WORKDIR; the code is never on the command line", () => {
     const [sh, flag, script] = buildCommand("python", { packages: [], gpu: null, timeoutSec: 60 });
     expect([sh, flag]).toEqual(["sh", "-c"]);
-    expect(script).toContain(`printf '%s' "$BJ_CODE" > main.py`);
-    expect(script).toContain("timeout -s TERM 60s");
-    expect(script).not.toContain("pip install");
+    expect(script).toBe(`cd ${WORKDIR} && exec timeout -s TERM 60s sh -c 'python3 -u bj_capture.py main.py out'`);
+  });
+  it("writes the code (any allowed size) and Python's capture module as files", () => {
+    const code = "x".repeat(LIMITS.maxCodeChars); // over Linux's 128 KiB limit for one environment variable
+    expect(sourceFiles("python", code, "CAPTURE")).toEqual({ "main.py": code, "bj_capture.py": "CAPTURE" });
+    expect(sourceFiles("java", "class Main {}", "CAPTURE")).toEqual({ "Main.java": "class Main {}" });
   });
   it("installs quoted packages before running, and compiles C before running it", () => {
     expect(buildCommand("python", { packages: ["torch"], gpu: "T4", timeoutSec: 60 })[2]).toContain("pip install -q --disable-pip-version-check --root-user-action=ignore '\\''torch'\\''");
@@ -54,6 +57,14 @@ describe("serverErrorLine", () => {
     expect(serverErrorLine("rust", "error[E0425]\n --> main.rs:2:13")).toBe(2);
     expect(serverErrorLine("java", "Main.java:5: error: ';' expected")).toBe(5);
     expect(serverErrorLine("go", "no line here")).toBeNull();
+  });
+});
+
+describe("response size", () => {
+  it("fits the hosting limit with the outputs at their cap (base64) and both streams full", () => {
+    const base64 = Math.ceil(SERVER_OUTPUT_BYTES / 3) * 4;
+    const manifest = 300_000 + 20_000; // bj_capture's inline table budget (MAX_INLINE_CHARS) and item metadata
+    expect(base64 + manifest + 2 * LIMITS.maxOutputChars + 1_000).toBeLessThan(RESPONSE_LIMIT_BYTES);
   });
 });
 
