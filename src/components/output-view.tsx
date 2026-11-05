@@ -132,7 +132,7 @@ export function OutputView({
   back: string;
   step: (index: number) => string;
   missing: string;
-  /** Shown above the output's label (the landing example's "Example note"). */
+  /** Shown above the output's label (the landing sample's "Sample note" tag). */
   badge?: React.ReactNode;
   backLabel?: string;
 }) {

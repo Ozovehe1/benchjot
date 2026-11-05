@@ -43,7 +43,8 @@ describe("landing note preview", () => {
   it("is marked as an example of the app, on the landing and its output pages", () => {
     const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
     expect(page).toContain("<ExampleBadge />");
-    expect(page).toContain("A preview of the app · read-only");
+    expect(readFileSync(new URL("../src/components/note-parts.tsx", import.meta.url), "utf8")).toContain(">Sample note</span>");
+    expect(page).not.toMatch(/read-only|preview of the app/i);
     expect(page).toMatch(/<header[^>]*justify-between">\s*<Logo \/>\s*<TextLink href="\/login" strong>\s*Sign in/); // header: logo left, Sign in right
     expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<ExampleBadge />}");
   });

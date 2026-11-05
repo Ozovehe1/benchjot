@@ -24,7 +24,6 @@ export function SampleOutputViewer({ index }: { index: number }) {
       read={read}
       base={s.filename}
       back="/"
-      backLabel="Back to example"
       step={sampleOutputPath}
       missing="This example output doesn’t exist."
       badge={<ExampleBadge />}

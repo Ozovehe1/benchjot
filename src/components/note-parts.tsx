@@ -19,5 +19,5 @@ export function RenderedBody({ value, notes, reserve = true }: { value: string; 
 
 /** Marks the landing's sample as an example (not site information, not the visitor's data). */
 export function ExampleBadge() {
-  return <span className="rounded-sm border border-line px-1.5 py-0.5 text-xs font-medium text-fg">Example note</span>;
+  return <span className="rounded-sm border border-line px-1.5 py-0.5 text-xs text-muted">Sample note</span>;
 }

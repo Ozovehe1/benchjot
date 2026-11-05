@@ -29,10 +29,9 @@ export default async function Home() {
         <p className="mt-3 text-[15px] leading-relaxed text-muted">
           Write notes, keep snippets, organise them in projects, and run Python and JavaScript right on your phone.
         </p>
-        <figure aria-label="Example note" className="mt-8 rounded-md border border-line px-4 pb-1">
-          <figcaption className="-mx-4 flex min-h-12 items-center justify-between gap-3 border-b border-line bg-tint px-4">
+        <figure aria-label="Sample note" className="mt-8 rounded-md border border-line px-4 pb-1">
+          <figcaption className="flex min-h-12 items-center">
             <ExampleBadge />
-            <span className="text-xs text-muted">A preview of the app · read-only</span>
           </figcaption>
           <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} outputs={SAMPLE_HREFS} />
         </figure>
