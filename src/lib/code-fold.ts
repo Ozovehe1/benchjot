@@ -4,8 +4,9 @@
 
 export const FOLD_LINES = 12;
 
+/** Lines as shown: a final newline doesn't start a line of its own. */
 export function lineCount(code: string): number {
-  return code === "" ? 1 : code.split("\n").length;
+  return code.replace(/\n$/, "").split("\n").length;
 }
 
 export function folds(code: string): boolean {
