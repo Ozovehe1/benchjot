@@ -2,12 +2,12 @@
 // minimal line diff the user accepts or rejects. No network here.
 import { z } from "zod";
 import { OUTCOMES, outcomeContext } from "./outcome";
-
-export const FIX_LIMITS = { maxCodeChars: 50_000, maxErrorChars: 8_000 } as const;
+import { FIX_LIMITS } from "../config/app";
+export { FIX_LIMITS };
 
 export const fixRequest = z.object({
   language: z.string().min(1).max(40),
-  code: z.string().min(1, "Nothing to fix").max(FIX_LIMITS.maxCodeChars, "Code is too long to fix"),
+  code: z.string().min(1, "Nothing to fix").max(FIX_LIMITS.maxCodeChars, "This code is too long for Fix. Try a smaller part."),
   error: z.string().min(1, "Run it first: Fix needs the error").max(FIX_LIMITS.maxErrorChars * 4),
   /** The note's outcome, as context. */
   outcome: z.enum(OUTCOMES).nullable().optional(),

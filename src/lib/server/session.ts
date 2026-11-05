@@ -32,8 +32,9 @@ export async function requireSession(request?: Request): Promise<Session | NextR
  * `code` is a stable kind (src/lib/user-message.ts) or "notice" when `error` is the app's own text
  * to show as is, `retryAfter` is seconds. Provider text never goes in; log it server-side instead.
  */
-export function jsonError(status: number, error: string): NextResponse {
-  return NextResponse.json({ error, code: "notice" }, { status });
+export function jsonError(status: number, error: string, retryAfter?: number): NextResponse {
+  const wait = retryAfter !== undefined && retryAfter > 0 ? Math.ceil(retryAfter) : undefined;
+  return NextResponse.json({ error, code: "notice", ...(wait !== undefined ? { retryAfter: wait } : {}) }, { status, headers: wait !== undefined ? { "retry-after": String(wait) } : undefined });
 }
 
 export function apiError(kind: ErrorKind, status: number, action?: ErrorAction, retryAfter?: number): NextResponse {

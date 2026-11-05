@@ -8,9 +8,11 @@ export const APP_DESCRIPTION = "A research jotter for your code.";
 export const ANDROID_APK_URL = "https://github.com/Ozovehe1/benchjot-android/releases/latest/download/benchjot.apk";
 export const ANDROID_APP_LABEL = "Get the Android app";
 
-// Fix requests per signed-in user (counted in the database by fix_take; /api/fix answers 429 with
-// retryAfter past either). Groq's own limits are on top of these.
-export const FIX_RATE = { perMinute: 6, perDay: 100 } as const;
-// The most Groq may write for one Fix answer (max_completion_tokens). A longer answer is cut off
-// and /api/fix answers too_large ("This code is too long for Fix. Try a smaller part.").
-export const FIX_MAX_REPLY_TOKENS = 8192;
+// Fix, sized for Groq's free plan for openai/gpt-oss-120b (org-wide 30 RPM, 1K RPD, 8K TPM, 200K TPD;
+// user-approved 2026-11-05). Per signed-in user, counted in the database by fix_take: perMinute in
+// any minute, perDay in a rolling 24 hours; /api/fix answers 429 with retryAfter past either.
+export const FIX_RATE = { perMinute: 6, perDay: 10 } as const;
+// maxCodeChars / maxErrorChars: what a request may send (longer code is refused as too long; the
+// error's tail is kept). maxReplyTokens: Groq's max_completion_tokens (gpt-oss reasoning counts
+// too, so reasoning_effort is "low"); a cut-off answer says "This code is too long for Fix…".
+export const FIX_LIMITS = { maxCodeChars: 16_000, maxErrorChars: 4_000, maxReplyTokens: 3_000 } as const;

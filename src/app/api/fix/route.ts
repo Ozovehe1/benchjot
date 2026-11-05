@@ -2,9 +2,9 @@
 // The key stays on the server (GROQ_API_KEY); any signed-in user may call it.
 import { NextResponse } from "next/server";
 import { fixMessages, fixRequest, parseFixAnswer } from "@/lib/fix";
-import { apiError, readBody, requireSession } from "@/lib/server/session";
-import { errorFacts, upstreamFailure } from "@/lib/user-message";
-import { FIX_MAX_REPLY_TOKENS, FIX_RATE } from "@/config/app";
+import { apiError, jsonError, readBody, requireSession } from "@/lib/server/session";
+import { errorFacts, upstreamFailure, waitText } from "@/lib/user-message";
+import { FIX_LIMITS, FIX_RATE } from "@/config/app";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   // Per-user limit, counted in the database (fix_take). If the counter itself fails, Fix still works.
   const { data: wait, error: rateError } = await session.db.rpc("fix_take", { per_minute: FIX_RATE.perMinute, per_day: FIX_RATE.perDay });
   if (rateError) console.error("fix_take failed", rateError);
+  else if (typeof wait === "number" && wait > 60) return jsonError(429, `You’ve used today’s ${FIX_RATE.perDay} fixes. More in ${waitText(wait)}.`, wait); // the daily cap (a minute's wait is at most 60 s)
   else if (typeof wait === "number" && wait > 0) return apiError("rate_limited", 429, "fix", wait);
 
   const key = process.env.GROQ_API_KEY;
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   const res = await fetch(GROQ_URL, {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, temperature: 0, max_completion_tokens: FIX_MAX_REPLY_TOKENS, response_format: { type: "json_object" }, messages: fixMessages(input) }),
+    body: JSON.stringify({ model: MODEL, temperature: 0, max_completion_tokens: FIX_LIMITS.maxReplyTokens, reasoning_effort: "low", response_format: { type: "json_object" }, messages: fixMessages(input) }),
     signal: AbortSignal.timeout(50_000),
   }).catch((e: unknown) => e as Error);
   if (res instanceof Error || !res.ok) {
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
     content = choice?.message?.content ?? "";
     // Cut off at max_completion_tokens: the answer would be partial code, so say the code is too long.
     if (choice?.finish_reason === "length") {
-      console.error("groq answer hit max_completion_tokens", FIX_MAX_REPLY_TOKENS);
+      console.error("groq answer hit max_completion_tokens", FIX_LIMITS.maxReplyTokens);
       return apiError("too_large", 413, "fix");
     }
     return NextResponse.json(parseFixAnswer(content));
