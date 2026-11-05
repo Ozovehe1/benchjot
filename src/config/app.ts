@@ -11,3 +11,6 @@ export const ANDROID_APP_LABEL = "Get the Android app";
 // Fix requests per signed-in user (counted in the database by fix_take; /api/fix answers 429 with
 // retryAfter past either). Groq's own limits are on top of these.
 export const FIX_RATE = { perMinute: 6, perDay: 100 } as const;
+// The most Groq may write for one Fix answer (max_completion_tokens). A longer answer is cut off
+// and /api/fix answers too_large ("This code is too long for Fix. Try a smaller part.").
+export const FIX_MAX_REPLY_TOKENS = 8192;

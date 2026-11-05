@@ -19,6 +19,7 @@ export const ERROR_CASES: [name: string, facts: ErrorFacts, action: ErrorAction 
   ["email taken", { status: 422, code: "user_already_exists", message: "User already registered" }, "sign_up", "conflict"],
   ["413", { status: 413, message: "The object exceeded the maximum allowed size" }, "save_figures", "too_large"],
   ["not found", { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" }, "outcome", "not_found"],
+  ["fix answer cut off", { status: 413, code: "too_large" }, "fix", "too_large"],
   ["5xx", { status: 502 }, "fix", "server"],
   ["unknown", { message: "Something odd: undefined" }, "upload", "unknown"],
   ["unknown, no action", {}, null, "unknown"],
