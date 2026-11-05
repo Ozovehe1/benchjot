@@ -44,6 +44,7 @@ describe("landing note preview", () => {
     const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
     expect(page).toContain("<ExampleBadge />");
     expect(page).toContain("A preview of the app · read-only");
+    expect(page).toMatch(/<header[^>]*justify-between">\s*<Logo \/>\s*<TextLink href="\/login" strong>\s*Sign in/); // header: logo left, Sign in right
     expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<ExampleBadge />}");
   });
 

@@ -17,8 +17,11 @@ export default async function Home() {
   if (user) return <EntryList />;
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-5 pb-6">
-      <header className="flex h-14 items-center">
+      <header className="flex h-14 items-center justify-between">
         <Logo />
+        <TextLink href="/login" strong>
+          Sign in
+        </TextLink>
       </header>
 
       <main className="flex flex-1 flex-col justify-center pb-8">
