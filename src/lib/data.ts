@@ -1,6 +1,7 @@
 "use client";
 // Data access: the only module that talks to Supabase tables.
 // Every write validates its input against the zod contracts first.
+import { allRows } from "./pages";
 import useSWR, { mutate as globalMutate } from "swr";
 import type { z } from "zod";
 import { supabase } from "./supabase/client";
@@ -100,17 +101,18 @@ export function useEntries(query: string, scope: EntryScope = {}) {
   const terms = searchTerms(query);
   return useSWR(
     keys.entries(terms.join(" "), scope),
-    async () =>
-      check(
-        await supabase()
+    () =>
+      allRows<EntryListItem>((from, to) =>
+        supabase()
           .rpc("search_entries", {
             terms,
             p_project: scope.projectId ?? null,
             p_unfiled: !!scope.unfiled,
             p_outcome: outcomeParam(scope.outcome ?? "all"),
           })
-          .select("id, title, outcome, parent_id, updated_at"),
-      ) as EntryListItem[],
+          .select("id, title, outcome, parent_id, updated_at")
+          .range(from, to),
+      ),
     { keepPreviousData: true },
   );
 }
@@ -121,8 +123,10 @@ export function useEntry(id: string) {
 
 /** Every note (id, title, parent), most recently edited first. */
 export function useNoteIndex() {
-  return useSWR(keys.noteIndex, async () =>
-    check(await supabase().from("entries").select("id, title, parent_id").order("updated_at", { ascending: false })) as NoteIndexItem[],
+  return useSWR(keys.noteIndex, () =>
+    allRows<NoteIndexItem>((from, to) =>
+      supabase().from("entries").select("id, title, parent_id").order("updated_at", { ascending: false }).order("id").range(from, to),
+    ),
   );
 }
 

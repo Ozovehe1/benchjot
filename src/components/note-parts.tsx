@@ -6,6 +6,9 @@ import { Markdown } from "./markdown";
 /** The note title's type and spacing; the editor applies it to its textarea. */
 export const NOTE_TITLE_CLASS = "mt-6 block w-full text-xl font-semibold leading-snug";
 
+/** The note's metadata rows (project, parent, outcome): small muted type. */
+export const NOTE_META_ROW_CLASS = "flex items-center gap-4 text-xs text-muted";
+
 /**
  * The note body as rendered (the editor's Preview, and read-only views).
  * `reserve` keeps the editor's tap-to-type height; read-only views turn it off.

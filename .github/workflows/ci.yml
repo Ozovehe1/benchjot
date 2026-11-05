@@ -50,3 +50,7 @@ jobs:
           python scripts/output-fixtures.py
           git add -N tests/fixtures/outputs
           git diff --exit-code --stat -- tests/fixtures/outputs || { echo "::error::bj_capture's output changed. Run scripts/output-fixtures.py and commit."; exit 1; }
+      - name: bj_capture tests (3D axis labels inside the crop)
+        run: python -m unittest tests/bj_capture_test.py
+      - name: Landing example note is current (reruns its experiment)
+        run: python scripts/sample-note/make.py --check

@@ -45,7 +45,10 @@ export function TablePreview({ table, rows = INLINE_ROWS }: { table: TableOutput
   );
 }
 
-function Preview({ item, url }: { item: OutputItem; url: (name: string | undefined) => string | undefined }) {
+type Urls = Readonly<Record<string, string | undefined>>;
+
+function Preview({ item, urls }: { item: OutputItem; urls: Urls }) {
+  const url = (name: string | undefined) => (name ? urls[name] : undefined);
   if (item.kind === "table") return <TablePreview table={item} />;
   if (item.kind === "chart") return <ChartView item={item} specUrl={url(item.files.json)} interactive={false} className="h-72" />;
   const src = url(displayFile(item) ?? undefined);
@@ -56,16 +59,18 @@ function Preview({ item, url }: { item: OutputItem; url: (name: string | undefin
 
 /**
  * Figures, tables and charts under a code block, in the order the code made them.
- * Each opens on its own page (`href`), once the run is saved; until then they show without a link.
+ * `urls`: each file's address, by name. Each opens on its own page (`hrefs[i]`) once the run
+ * is saved; until then (`hrefs` null) they show without a link. Plain data, so a server page
+ * (the landing's read-only note) can render it too.
  */
 export function RunOutputs({
   manifest,
-  url,
-  href,
+  urls,
+  hrefs,
 }: {
   manifest: Manifest;
-  url: (name: string | undefined) => string | undefined;
-  href: ((index: number) => string) | null;
+  urls: Urls;
+  hrefs: readonly string[] | null;
 }) {
   return (
     <section aria-label="Figures and tables" className="space-y-4 pt-2">
@@ -76,17 +81,17 @@ export function RunOutputs({
               {outputLabel(item)}
               {item.kind !== "table" && item.title ? ` · ${item.title}` : ""}
             </span>
-            {href && <span className="shrink-0 text-muted">Open</span>}
+            {hrefs && <span className="shrink-0 text-muted">Open</span>}
           </span>
         );
         const body = (
           <>
-            <Preview item={item} url={url} />
+            <Preview item={item} urls={urls} />
             {caption}
           </>
         );
-        return href ? (
-          <Link key={i} href={href(i)} aria-label={`Open ${outputLabel(item)} ${i + 1}`} className="block hover:opacity-95">
+        return hrefs?.[i] ? (
+          <Link key={i} href={hrefs[i]} aria-label={`Open ${outputLabel(item)} ${i + 1}`} className="block hover:opacity-95">
             {body}
           </Link>
         ) : (

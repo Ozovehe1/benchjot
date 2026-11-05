@@ -2,8 +2,11 @@ import { EntryList } from "@/components/entry-list";
 import { NotePreview } from "@/components/note-preview";
 import { ButtonLink, Logo, TextLink } from "@/components/ui";
 import { APP_DESCRIPTION } from "@/config/app";
-import { SAMPLE_ENTRY, SAMPLE_SNIPPETS } from "@/lib/sample-note";
+import { sampleOutputPath } from "@/lib/paths";
+import { SAMPLE_ENTRY, SAMPLE_OUTPUT_URLS, SAMPLE_SNIPPETS } from "@/lib/sample-note";
 import { serverSupabase } from "@/lib/supabase/server";
+
+const SAMPLE_HREFS = { urls: SAMPLE_OUTPUT_URLS, hrefs: (SAMPLE_SNIPPETS[0]?.last_run?.outputs?.items ?? []).map((_, i) => sampleOutputPath(i)) };
 
 // Home: the list for signed-in users, a one-screen landing page for everyone else.
 export default async function Home() {
@@ -23,7 +26,7 @@ export default async function Home() {
           Write notes, keep snippets, organise them in projects, and run Python and JavaScript right on your phone.
         </p>
         <figure aria-label="Example note" className="mt-6 rounded-md border border-line px-4 pb-1">
-          <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} />
+          <NotePreview entry={SAMPLE_ENTRY} snippets={SAMPLE_SNIPPETS} outputs={SAMPLE_HREFS} />
         </figure>
 
         <nav aria-label="Account" className="mt-6 flex flex-col">

@@ -6,3 +6,9 @@ export const notePath = (id: string) => `/n/${id}`;
 export function afterDeletePath(projectId: string | null | undefined): string {
   return projectId ? projectPath(projectId) : "/";
 }
+
+/** One output of a code block's saved run, on its own page. */
+export const outputPagePath = (noteId: string, snippetId: string, index: number) => `${notePath(noteId)}/out/${snippetId}/${index}`;
+
+/** The landing's example note: its outputs open here (read-only, no sign-in), and go back to the landing. */
+export const sampleOutputPath = (index: number) => `/example/out/${index}`;

@@ -10,7 +10,7 @@ import type { Snippet } from "@/lib/schemas";
 import { codeHash, fromLastRun, toLastRun, type Chunk } from "@/lib/run/last-run";
 import { runsOnServer } from "@/lib/run/server-languages";
 import { MIME, runArchiveEntries, type CapturedOutputs } from "@/lib/run/outputs";
-import { notePath } from "@/lib/paths";
+import { outputPagePath } from "@/lib/paths";
 import { saveBlob, saveText } from "@/lib/save-file";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { FixDiff } from "./fix-diff";
@@ -289,12 +289,12 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
       )}
 
       {live ? (
-        <RunOutputs manifest={live.manifest} url={(n) => (n ? blobUrls[n] : undefined)} href={null} />
+        <RunOutputs manifest={live.manifest} urls={blobUrls} hrefs={null} />
       ) : savedOutputs ? (
         <RunOutputs
           manifest={savedOutputs}
-          url={(n) => (n ? signed[n] : undefined)}
-          href={(i) => `${notePath(snippet.entry_id)}/out/${snippet.id}/${i}`}
+          urls={signed}
+          hrefs={savedOutputs.items.map((_, i) => outputPagePath(snippet.entry_id, snippet.id, i))}
         />
       ) : null}
 

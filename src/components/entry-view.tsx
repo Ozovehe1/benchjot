@@ -24,7 +24,7 @@ import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
 import { FilePicker } from "./file-picker";
 import { NoteBody } from "./note-body";
-import { NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
+import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
 import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
@@ -221,7 +221,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         <ParentPicker noteId={entry.id} notes={notesIndex} current={parentId} onPick={(id) => void reparent(id)} onClose={() => setPicking(false)} />
       )}
 
-      <div className="flex items-center gap-4 text-xs text-muted">
+      <div className={NOTE_META_ROW_CLASS}>
         <span>Outcome</span>
         <Segmented label="Outcome" options={OUTCOME_CHOICES} value={outcome} onChange={(v) => void mark(v)} />
         {outcomeError && <span role="alert" className="text-fg">{outcomeError}</span>}
