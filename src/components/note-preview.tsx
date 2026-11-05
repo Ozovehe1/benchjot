@@ -8,6 +8,7 @@ import { OUTCOME_LABEL } from "@/lib/outcome";
 import { fromLastRun } from "@/lib/run/last-run";
 import type { Entry, Snippet } from "@/lib/schemas";
 import { cn } from "@/lib/format";
+import { FoldedCode } from "./folded-code";
 import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
 import { RunOutput } from "./run-output";
 import { RunOutputs } from "./run-outputs";
@@ -52,7 +53,9 @@ function SnippetView({ snippet, index, outputs }: { snippet: PreviewSnippet; ind
   return (
     <div className="border-t border-line">
       <SnippetHeader filename={snippet.filename} language={<span className="-ml-1 px-1">{label}</span>} />
-      <StaticCode code={snippet.content} language={snippet.language} label={`Code ${index + 1}`} />
+      <FoldedCode code={snippet.content}>
+        <StaticCode code={snippet.content} language={snippet.language} label={`Code ${index + 1}`} />
+      </FoldedCode>
       {run && <RunOutput chunks={run.chunks} status="" running={false} result={run.result} />}
       {manifest && <RunOutputs manifest={manifest} urls={outputs.urls} hrefs={outputs.hrefs} />}
     </div>

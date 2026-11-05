@@ -3,6 +3,7 @@
 // (public/sample-outputs), never from Storage. Back goes to the landing.
 import { sampleOutputPath } from "@/lib/paths";
 import { SAMPLE_OUTPUT_URLS, SAMPLE_SNIPPETS } from "@/lib/sample-note";
+import { ExampleBadge } from "./note-parts";
 import { OutputView } from "./output-view";
 
 async function read(name: string): Promise<Uint8Array> {
@@ -23,8 +24,10 @@ export function SampleOutputViewer({ index }: { index: number }) {
       read={read}
       base={s.filename}
       back="/"
+      backLabel="Back to example"
       step={sampleOutputPath}
       missing="This example output doesn’t exist."
+      badge={<ExampleBadge />}
     />
   );
 }

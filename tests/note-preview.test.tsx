@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { NotePreview } from "@/components/note-preview";
 import { highlightSpans } from "@/components/static-code";
+import { FOLD_LINES, lineCount } from "@/lib/code-fold";
 import { sampleOutputPath } from "@/lib/paths";
 import { codeHash } from "@/lib/run/last-run";
 import { outputLabel } from "@/lib/run/outputs";
@@ -39,8 +40,23 @@ describe("landing note preview", () => {
     for (const [i, h] of hrefs.entries()) expect(html).toMatch(new RegExp(`<a aria-label="Open ${outputLabel(items[i]!)} ${i + 1}"[^>]*href="${h}"`));
   });
 
-  it("has nothing editable and no actions", () => {
-    expect(html).not.toMatch(/<(textarea|input|select|button)\b/);
+  it("is marked as an example of the app, on the landing and its output pages", () => {
+    const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+    expect(page).toContain("<ExampleBadge />");
+    expect(page).toContain("A preview of the app · read-only");
+    expect(readFileSync(new URL("../src/components/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<ExampleBadge />}");
+  });
+
+  it("folds long code to 12 lines with a toggle (the code block's shared frame)", () => {
+    expect(lineCount(sample.content)).toBeGreaterThan(FOLD_LINES);
+    expect(html).toContain(`>Show all ${lineCount(sample.content)} lines<`);
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain("whitespace-pre "); // lines scroll sideways, no wrapping
+  });
+
+  it("has nothing editable and no actions (only the fold toggle)", () => {
+    expect(html).not.toMatch(/<(textarea|input|select)\b/);
+    expect(html.match(/<button\b/g)).toHaveLength(1);
     expect(html).not.toMatch(/contenteditable/i);
     expect(html).not.toMatch(/>(Run|Stop|Copy|Clear|Remove|Download run)</);
   });
@@ -49,14 +65,15 @@ describe("landing note preview", () => {
     const read = (f: string) => readFileSync(new URL(`../src/components/${f}`, import.meta.url), "utf8");
     for (const piece of ["NOTE_TITLE_CLASS", "NOTE_META_ROW_CLASS", "RenderedBody", "SnippetHeader", "RunOutput", "RunOutputs"]) expect(read("note-preview.tsx")).toContain(piece);
     for (const piece of ["NOTE_TITLE_CLASS", "NOTE_META_ROW_CLASS", "<RenderedBody"]) expect(read("entry-view.tsx")).toContain(piece);
-    for (const piece of ["<SnippetHeader", "<RunOutputs"]) expect(read("snippet-block.tsx")).toContain(piece);
+    for (const piece of ["<SnippetHeader", "<RunOutputs", "<FoldedCode"]) expect(read("snippet-block.tsx")).toContain(piece);
+    expect(read("note-preview.tsx")).toContain("<FoldedCode");
     expect(read("output-viewer.tsx")).toContain("<OutputView");
     expect(read("sample-output-viewer.tsx")).toContain("<OutputView");
     expect(read("code-editor.tsx")).toContain("CODE_TOKENS");
   });
 
   it("imports nothing that talks to the network", () => {
-    const files = ["note-preview.tsx", "static-code.tsx", "note-parts.tsx", "run-outputs.tsx", "chart-view.tsx", "output-view.tsx", "sample-output-viewer.tsx"].map((f) => `../src/components/${f}`);
+    const files = ["note-preview.tsx", "static-code.tsx", "note-parts.tsx", "run-outputs.tsx", "chart-view.tsx", "output-view.tsx", "sample-output-viewer.tsx", "folded-code.tsx"].map((f) => `../src/components/${f}`);
     for (const f of [...files, "../src/lib/sample-note.ts", "../src/app/example/out/[index]/page.tsx"])
       expect(readFileSync(new URL(f, import.meta.url), "utf8"), f).not.toMatch(/supabase|lib\/data|output-store|server-client|runner/);
   });

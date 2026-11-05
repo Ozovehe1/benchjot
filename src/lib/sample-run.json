@@ -1,15 +1,15 @@
 {
-  "code": "import matplotlib.pyplot as plt\nimport pandas as pd\nimport plotly.graph_objects as go\nfrom sklearn.datasets import load_digits\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score\nfrom sklearn.model_selection import train_test_split\n\nX, y = load_digits(return_X_y=True)\nX_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, stratify=y, random_state=0)\nmodels = {\n    \"logreg\": LogisticRegression(max_iter=2000),\n    \"forest\": RandomForestClassifier(n_estimators=200, random_state=0),\n}\nrows, pred = [], {}\nfor name, m in models.items():\n    pred[name] = m.fit(X_tr / 16, y_tr).predict(X_te / 16)\n    rows.append({\"model\": name,\n                 \"accuracy\": round(accuracy_score(y_te, pred[name]), 3),\n                 \"macro_f1\": round(f1_score(y_te, pred[name], average=\"macro\"), 3)})\n    print(f\"{name:7} acc {rows[-1]['accuracy']:.3f}\")\ndisplay(pd.DataFrame(rows).set_index(\"model\"))\n\nConfusionMatrixDisplay.from_predictions(y_te, pred[\"forest\"], cmap=\"Greys\", colorbar=False)\nplt.title(\"forest: test confusion\")\nplt.show()\n\nper_class = {n: f1_score(y_te, p, average=None).round(3) for n, p in pred.items()}\nfig = go.Figure([go.Bar(x=list(range(10)), y=v, name=n) for n, v in per_class.items()])\nfig.update_layout(title=\"F1 per digit\", xaxis_title=\"digit\", yaxis_title=\"F1\", barmode=\"group\")\nfig.show()\n",
+  "code": "import matplotlib.pyplot as plt, pandas as pd, plotly.graph_objects as go\nfrom sklearn.datasets import load_digits\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score\nfrom sklearn.model_selection import train_test_split\n\nX, y = load_digits(return_X_y=True)\nX_tr, X_te, y_tr, y_te = train_test_split(X / 16, y, test_size=0.25, stratify=y, random_state=0)\nmodels = {\"logreg\": LogisticRegression(max_iter=2000), \"forest\": RandomForestClassifier(200, random_state=0)}\npred = {n: m.fit(X_tr, y_tr).predict(X_te) for n, m in models.items()}\nscores = {n: {\"accuracy\": accuracy_score(y_te, p), \"macro_f1\": f1_score(y_te, p, average=\"macro\")} for n, p in pred.items()}\nfor n, s in scores.items():\n    print(f\"{n:7} acc {s['accuracy']:.3f}\")\n\ndisplay(pd.DataFrame(scores).T.rename_axis(\"model\").round(3))\nConfusionMatrixDisplay.from_predictions(y_te, pred[\"forest\"], cmap=\"Greys\", colorbar=False)\nplt.title(\"forest: test confusion\")\nplt.show()\nfig = go.Figure([go.Bar(x=list(range(10)), y=f1_score(y_te, p, average=None).round(3), name=n) for n, p in pred.items()])\nfig.update_layout(title=\"F1 per digit\", xaxis_title=\"digit\", yaxis_title=\"F1\", barmode=\"group\")\nfig.show()\n",
   "last_run": {
     "outcome": "ok",
     "stdout": "logreg  acc 0.969\nforest  acc 0.987\n",
     "stderr": "",
     "error_line": null,
     "line": null,
-    "ms": 3973,
+    "ms": 4258,
     "where": "server",
-    "code_hash": "d6c7dcf86fcd5",
-    "ran_at": "2026-11-05T14:22:57.000Z",
+    "code_hash": "11c280bf9f5a35",
+    "ran_at": "2026-11-05T14:58:04.000Z",
     "outputs": {
       "version": 1,
       "items": [

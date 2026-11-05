@@ -14,6 +14,7 @@ import { outputPagePath } from "@/lib/paths";
 import { saveBlob, saveText } from "@/lib/save-file";
 import { runsInBrowser, type RunHandle, type RunResult, type Stream } from "@/lib/run/types";
 import { FixDiff } from "./fix-diff";
+import { FoldedCode } from "./folded-code";
 import { RunOutput } from "./run-output";
 import { RunOutputs } from "./run-outputs";
 import { SnippetHeader } from "./snippet-header";
@@ -266,6 +267,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
         }
       />
 
+      <FoldedCode code={content}>
       <CodeEditor
         value={content}
         onChange={edit}
@@ -274,6 +276,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
         errorLine={stale ? null : result?.error?.line ?? null}
         onFixable={setFixable}
       />
+      </FoldedCode>
 
       {output && (
         <RunOutput

@@ -41,7 +41,7 @@ export function StaticCode({ code, language, label }: { code: string; language: 
   return (
     <pre
       aria-label={label}
-      className="min-h-[72px] whitespace-pre-wrap break-words py-3 font-mono text-[13.5px] leading-[1.65] text-fg"
+      className="min-h-[72px] overflow-x-auto whitespace-pre py-3 font-mono text-[13.5px] leading-[1.65] text-fg"
     >
       {highlightSpans(code, language).map((s, i) => (s.style ? <span key={i} style={s.style}>{s.text}</span> : s.text))}
     </pre>

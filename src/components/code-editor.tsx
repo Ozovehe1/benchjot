@@ -98,7 +98,6 @@ export function CodeEditor({
       grammar,
       languageSettings(language),
       codeInput(label),
-      EditorView.lineWrapping, // no sideways swiping on phones
       errorLineField,
       touched ? lintFor(language, (n) => fixableRef.current?.(n)) : [],
       EditorView.focusChangeEffect.of((_state, focusing) => {

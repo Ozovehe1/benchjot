@@ -121,6 +121,8 @@ export function OutputView({
   back,
   step,
   missing,
+  badge,
+  backLabel = "Back to note",
 }: {
   items: readonly OutputItem[] | null;
   index: number;
@@ -130,6 +132,9 @@ export function OutputView({
   back: string;
   step: (index: number) => string;
   missing: string;
+  /** Shown above the output's label (the landing example's "Example note"). */
+  badge?: React.ReactNode;
+  backLabel?: string;
 }) {
   const item = items?.[index];
   const formats = item ? downloadFormats(item) : [];
@@ -137,7 +142,7 @@ export function OutputView({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chart = useRef<DrawnChart | null>(null);
-  const backLink = <TextLink href={back}>Back to note</TextLink>;
+  const backLink = <TextLink href={back}>{backLabel}</TextLink>;
   const count = items?.length ?? 0;
 
   if (!item) {
@@ -189,6 +194,7 @@ export function OutputView({
             )
           }
         />
+        {badge && <div className="pb-2">{badge}</div>}
         <h1 className="truncate pb-2 font-mono text-xs text-faint">{label}</h1>
       </Column>
 

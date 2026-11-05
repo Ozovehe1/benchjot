@@ -16,3 +16,8 @@ export const NOTE_META_ROW_CLASS = "flex items-center gap-4 text-xs text-muted";
 export function RenderedBody({ value, notes, reserve = true }: { value: string; notes?: readonly NoteRef[]; reserve?: boolean }) {
   return <div className={reserve ? "mt-4 min-h-24" : "mt-4"}>{value.trim() ? <Markdown notes={notes}>{value}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>;
 }
+
+/** Marks the landing's sample as an example (not site information, not the visitor's data). */
+export function ExampleBadge() {
+  return <span className="rounded-sm border border-line px-1.5 py-0.5 text-xs font-medium text-fg">Example note</span>;
+}
