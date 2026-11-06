@@ -1,5 +1,6 @@
 // Pieces of the note screen shared by the editor (entry-view.tsx) and the
 // read-only preview (note-preview.tsx), so both look the same by construction.
+import { cellNoteName, isCellNoteEmpty, type CellNoteSide } from "@/lib/cell-notes";
 import type { NoteRef } from "@/lib/links";
 import { Markdown } from "./markdown";
 
@@ -15,6 +16,22 @@ export const NOTE_META_ROW_CLASS = "flex items-center gap-4 text-xs text-muted";
  */
 export function RenderedBody({ value, notes, reserve = true }: { value: string; notes?: readonly NoteRef[]; reserve?: boolean }) {
   return <div className={reserve ? "mt-4 min-h-24" : "mt-4"}>{value.trim() ? <Markdown notes={notes}>{value}</Markdown> : <p className="text-faint">Nothing written.</p>}</div>;
+}
+
+/** A cell note's spacing, editing or read-only. */
+export const CELL_NOTE_CLASS = "block w-full py-2";
+
+/**
+ * A cell's "Note before run" / "Note after run" read-only (the editor's Preview, the landing):
+ * rendered like the body, named with its label and the cell. An empty one renders nothing.
+ */
+export function CellNoteText({ side, value, filename, index, notes }: { side: CellNoteSide; value: string; filename: string; index: number; notes?: readonly NoteRef[] }) {
+  if (isCellNoteEmpty(value)) return null;
+  return (
+    <section aria-label={cellNoteName(side, filename, index)} className={CELL_NOTE_CLASS}>
+      <Markdown notes={notes}>{value}</Markdown>
+    </section>
+  );
 }
 
 /** Marks the landing's sample as an example (not site information, not the visitor's data). */

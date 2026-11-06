@@ -132,7 +132,7 @@ export function useNoteIndex() {
   );
 }
 
-/** Every [[link]] in the user's notes, derived from the bodies by note_links(). */
+/** Every [[link]] in the user's notes, derived by note_links() from the bodies and the cell notes. */
 export function useNoteLinks() {
   return useSWR(keys.noteLinks, async (): Promise<SourcedLink[]> => {
     const rows = check(await supabase().rpc("note_links")) as NoteLinkRow[];
@@ -192,8 +192,14 @@ export async function updateSnippet(snippet: Pick<Snippet, "id" | "entry_id">, p
     (list?: Snippet[]) => list?.map((s) => (s.id === snippet.id ? { ...s, ...row } : s)),
     { revalidate: false },
   );
-  // A saved run isn't an edit: the list order and search don't change.
-  if ("content" in row || "language" in row) void refreshLists();
+  // A saved run isn't an edit: the list order and search don't change. Code and cell notes are
+  // searched, and cell notes' [[links]] count for backlinks and the map.
+  if ("content" in row || "language" in row || "note_before" in row || "note_after" in row) void refreshLists();
+}
+
+/** Saves a cell's "Note before run" / "Note after run" (the user's text; nothing else writes it). */
+export function saveCellNotes(snippet: Pick<Snippet, "id" | "entry_id">, notes: Pick<Snippet, "note_before" | "note_after">): Promise<void> {
+  return updateSnippet(snippet, notes);
 }
 
 /** Stores (or, with null, clears) a code block's latest run. */

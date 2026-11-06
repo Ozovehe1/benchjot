@@ -19,9 +19,10 @@ import { cn, displayTitle } from "@/lib/format";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import { afterDeletePath } from "@/lib/paths";
-import type { Entry, NoteIndexItem } from "@/lib/schemas";
+import type { Entry, NoteIndexItem, Snippet } from "@/lib/schemas";
 import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
+import { CellNote, useCellNotes } from "./cell-note";
 import { FilePicker } from "./file-picker";
 import { FormatBarProvider, FormatBarSlot } from "./format-bar";
 import { LiveTextBlock, type TextBlockHandle } from "./live-text-block";
@@ -249,7 +250,9 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       )}
 
       <section aria-label="Code" className="mt-10">
-        {snippets?.map((s, i) => <SnippetBlock key={s.id} snippet={s} index={i} outcome={outcome} />)}
+        {snippets?.map((s, i) => (
+          <CodeCell key={s.id} snippet={s} index={i} outcome={outcome} notes={notesIndex} selfId={entry.id} preview={preview} />
+        ))}
         <div className="flex gap-6 border-t border-line">
           <TextButton onClick={() => void createEmptySnippet(entry.id, snippets?.length ?? 0)}>Add code</TextButton>
           <FilePicker label="Upload file" onError={setUploadError} onFiles={(files) => createSnippets(entry.id, snippets?.length ?? 0, files)} />
@@ -271,6 +274,22 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       </div>
     </Column>
     </FormatBarProvider>
+  );
+}
+
+/** One code cell with its "Note before run" above and "Note after run" below its output. */
+function CodeCell({ snippet, index, outcome, notes, selfId, preview }: { snippet: Snippet; index: number; outcome: Outcome | null; notes: readonly NoteIndexItem[]; selfId: string; preview: boolean }) {
+  const cell = useCellNotes(snippet);
+  const shared = { filename: snippet.filename, index, notes, selfId, preview };
+  return (
+    <SnippetBlock
+      snippet={snippet}
+      index={index}
+      outcome={outcome}
+      before={<CellNote side="before" value={cell.before} onChange={cell.setBefore} {...shared} />}
+      after={<CellNote side="after" value={cell.after} onChange={cell.setAfter} {...shared} />}
+      onBeforeRemove={cell.flush}
+    />
   );
 }
 

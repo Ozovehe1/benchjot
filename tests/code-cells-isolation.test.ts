@@ -24,12 +24,15 @@ describe("body commands vs code cells", () => {
     expect(body.doc.toString()).not.toBe("Note text\n- item");
     expect(JSON.stringify(snippets)).toBe(before);
   });
+  it("cell notes reach a code block only as slots it renders (before / after), never through its imports", () => {
+    expect(src("components/snippet-block.tsx")).toMatch(/\{before\}[\s\S]*<SnippetHeader[\s\S]*\{after\}/);
+  });
   it("the body's live modules don't reach snippets, and the code editor doesn't load them", () => {
     for (const p of ["lib/live-editor.ts", "lib/live-markdown.ts", "lib/markdown-format.ts", "components/format-bar.tsx", "components/live-text-block.tsx"]) {
       expect(imports(p), p).not.toMatch(/snippet|@\/lib\/data|code-editor|code-keys|\/run/);
     }
     for (const p of ["components/code-editor.tsx", "components/snippet-block.tsx", "components/code-keys.tsx"]) {
-      expect(imports(p), p).not.toMatch(/live-editor|live-markdown|markdown-format|format-bar|live-text-block/);
+      expect(imports(p), p).not.toMatch(/live-editor|live-markdown|markdown-format|format-bar|live-text-block|cell-note/);
     }
   });
 });
