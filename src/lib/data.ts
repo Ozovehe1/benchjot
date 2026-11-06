@@ -180,6 +180,11 @@ export function useSnippets(entryId: string) {
   });
 }
 
+/** The note's code cells fresh from the database (the cache is updated too): for a read on a tap. */
+export function fetchSnippets(entryId: string): Promise<Snippet[] | undefined> {
+  return globalMutate<Snippet[]>(keys.snippets(entryId));
+}
+
 /** Adds code blocks to an entry in one insert, positioned after `position`. */
 export async function createSnippets(entryId: string, position: number, items: SnippetInput[]): Promise<void> {
   const rows = items.map((item, i) => ({ ...validate(snippetInput, item), entry_id: entryId, position: position + i }));

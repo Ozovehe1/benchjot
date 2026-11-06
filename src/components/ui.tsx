@@ -56,7 +56,7 @@ type Strong = { strong?: boolean };
 type Variant = { variant?: keyof typeof filledTone };
 
 /** Secondary actions: text only. `strong` for a selected or emphasised one. */
-export function TextButton({ className, strong, type = "button", ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & Strong) {
+export function TextButton({ className, strong, type = "button", ...rest }: React.ComponentProps<"button"> & Strong) {
   return <button type={type} className={cn(textBase, textTone(strong), className)} {...rest} />;
 }
 

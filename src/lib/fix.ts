@@ -37,10 +37,15 @@ export function fixMessages({ language, code, error, outcome }: FixRequest) {
   ];
 }
 
-/** Reads the model's JSON reply (tolerating a ```json fence). Throws on anything else. */
-export function parseFixAnswer(content: string): FixAnswer {
+/** Reads a model's JSON reply (tolerating a ```json fence) against `schema`. Throws on anything else. */
+export function readJsonReply<S extends z.ZodType>(content: string, schema: S): z.output<S> {
   const text = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const parsed = fixAnswer.parse(JSON.parse(text));
+  return schema.parse(JSON.parse(text));
+}
+
+/** Reads the model's fix (Windows line ends become \n). Throws on anything else. */
+export function parseFixAnswer(content: string): FixAnswer {
+  const parsed = readJsonReply(content, fixAnswer);
   return { ...parsed, code: parsed.code.replace(/\r\n/g, "\n") };
 }
 

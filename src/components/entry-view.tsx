@@ -8,6 +8,7 @@ import {
   createEntry,
   createSnippets,
   deleteEntry,
+  fetchSnippets,
   newAttempt,
   updateEntry,
   useEntry,
@@ -18,15 +19,17 @@ import {
 } from "@/lib/data";
 import { cn, displayTitle } from "@/lib/format";
 import { mapHref } from "@/lib/graph";
+import { helperCells } from "@/lib/helper";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import { afterDeletePath } from "@/lib/paths";
-import type { Entry, NoteIndexItem, Snippet } from "@/lib/schemas";
+import type { Entry, NoteIndexItem, Snippet, SnippetInput } from "@/lib/schemas";
 import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
 import { CellNote, useCellNotes } from "./cell-note";
 import { FilePicker } from "./file-picker";
 import { FormatBarProvider, FormatBarSlot } from "./format-bar";
+import { HelperPanel, type HelperNote } from "./helper-panel";
 import { LiveTextBlock, type TextBlockHandle } from "./live-text-block";
 import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
 import { ParentPicker } from "./parent-picker";
@@ -64,6 +67,8 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   const [title, setTitle] = useState(entry.title);
   const [notes, setNotes] = useState(entry.notes);
   const [preview, setPreview] = useState(false);
+  const [helper, setHelper] = useState(false);
+  const helperButton = useRef<HTMLButtonElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState(entry.project_id ?? "");
   const [moveError, setMoveError] = useState<string | null>(null);
@@ -164,6 +169,24 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [flushAll]);
 
+  /** The note as the Helper reads it, on the tap that sends: pending edits saved first, then the cells as saved. */
+  async function readNote(): Promise<HelperNote> {
+    await flushAll();
+    const cells = (await fetchSnippets(entry.id)) ?? snippets ?? [];
+    return { title: displayTitle(title), body: notes, cells: helperCells(cells) };
+  }
+
+  /** "Insert into note": a new code cell at the end (Android: Backend.createSnippets at count). */
+  function insertCell(cell: SnippetInput) {
+    setUploadError(null);
+    createSnippets(entry.id, snippets?.length ?? 0, [cell]).catch((e: unknown) => setUploadError(userMessage(e, "upload")));
+  }
+
+  function closeHelper() {
+    setHelper(false);
+    helperButton.current?.focus();
+  }
+
   async function remove() {
     if (!window.confirm("Delete this note and its code?")) return;
     await flushAll();
@@ -180,6 +203,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         right={
           <>
             <SaveIndicator />
+            <TextButton ref={helperButton} onClick={() => setHelper(true)} aria-haspopup="dialog" aria-expanded={helper}>Helper</TextButton>
             <TextButton onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</TextButton>
             <MoreMenu
               items={[
@@ -305,6 +329,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           </p>
         )}
       </NoteList>
+      <HelperPanel open={helper} onClose={closeHelper} readNote={readNote} onInsert={insertCell} />
     </Column>
     </FormatBarProvider>
   );
