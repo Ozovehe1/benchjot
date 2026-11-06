@@ -14,6 +14,7 @@ import { outcomeParam, type OutcomeFilter } from "./outcome";
 import {
   entryPatch,
   firstIssue,
+  NOTE_INDEX_COLUMNS,
   projectName,
   snippetInput,
   snippetPatch,
@@ -123,11 +124,11 @@ export function useEntry(id: string) {
   return useSWR(keys.entry(id), async () => check(await supabase().from("entries").select("*").eq("id", id).maybeSingle()) as Entry);
 }
 
-/** Every note (id, title, parent), most recently edited first. */
+/** Every note (NOTE_INDEX_COLUMNS), most recently edited first. */
 export function useNoteIndex() {
   return useSWR(keys.noteIndex, () =>
     allRows<NoteIndexItem>((from, to) =>
-      supabase().from("entries").select("id, title, parent_id").order("updated_at", { ascending: false }).order("id").range(from, to),
+      supabase().from("entries").select(NOTE_INDEX_COLUMNS).order("updated_at", { ascending: false }).order("id").range(from, to),
     ),
   );
 }
@@ -145,6 +146,17 @@ export async function createEntry(title = "", projectId: string | null = null, p
   const created = check(await supabase().from("entries").insert(row).select().single()) as Entry;
   void refreshLists();
   return created;
+}
+
+/**
+ * A new attempt of a note: new_attempt() (SQL) copies its title as "<title> (attempt N)",
+ * body, project, parent and code cells (not their runs or the outcome) and sets
+ * derived_from, in one transaction. Returns the new note's id.
+ */
+export async function newAttempt(fromId: string): Promise<string> {
+  const id = check(await supabase().rpc("new_attempt", { p_from: fromId })) as string;
+  void refreshLists();
+  return id;
 }
 
 export async function updateEntry(id: string, patch: EntryPatch): Promise<void> {

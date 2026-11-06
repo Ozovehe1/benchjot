@@ -8,6 +8,7 @@ import {
   createEntry,
   createSnippets,
   deleteEntry,
+  newAttempt,
   updateEntry,
   useEntry,
   useNoteIndex,
@@ -16,6 +17,7 @@ import {
   useSnippets,
 } from "@/lib/data";
 import { cn, displayTitle } from "@/lib/format";
+import { mapHref } from "@/lib/graph";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import { afterDeletePath } from "@/lib/paths";
@@ -30,7 +32,7 @@ import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-part
 import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
-import { Column, Segmented, TextButton, TextLink, TopBar } from "./ui";
+import { Column, MoreMenu, Segmented, TextButton, TextLink, TopBar } from "./ui";
 import { userMessage } from "@/lib/user-message";
 
 const NO_NOTES: NoteIndexItem[] = [];
@@ -91,6 +93,23 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   const parent = path.at(-1);
   const subNotes = childrenOf(entry.id, tree);
   const linkedFrom = links ? backlinksTo(entry.id, links, notesIndex) : [];
+  const origin = notesIndex.find((n) => n.id === entry.derived_from);
+  const attempts = notesIndex.filter((n) => n.derived_from === entry.id);
+  const [attemptError, setAttemptError] = useState<string | null>(null);
+  const [attempting, setAttempting] = useState(false);
+
+  async function startAttempt() {
+    setAttempting(true);
+    setAttemptError(null);
+    try {
+      await flushAll(); // the copy takes the body and code as saved
+      const id = await newAttempt(entry.id);
+      router.push(`/n/${id}`);
+    } catch (e) {
+      setAttemptError(userMessage(e, "new_attempt"));
+      setAttempting(false);
+    }
+  }
 
   async function reparent(next: string | null) {
     const previous = parentId;
@@ -162,6 +181,13 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           <>
             <SaveIndicator />
             <TextButton onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</TextButton>
+            <MoreMenu
+              items={[
+                { label: "Map", href: mapHref(entry.id, 1) },
+                { label: "New attempt", onSelect: () => void startAttempt(), disabled: attempting },
+                { label: "Delete note", onSelect: () => void remove() },
+              ]}
+            />
           </>
         }
       />
@@ -268,10 +294,17 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         <TextButton onClick={() => void newSubNote()}>New sub-note</TextButton>
       </NoteList>
       <NoteList title="Linked from" notes={linkedFrom} empty="No notes link here." />
-
-      <div className="mt-12">
-        <TextButton onClick={remove}>Delete note</TextButton>
-      </div>
+      {origin && <NoteList title="Derived from" notes={[origin]} empty={null} />}
+      <NoteList title="Attempts" notes={attempts} empty={null}>
+        <TextButton onClick={() => void startAttempt()} disabled={attempting}>
+          New attempt
+        </TextButton>
+        {attemptError && (
+          <p role="alert" className="pb-3 text-sm">
+            {attemptError}
+          </p>
+        )}
+      </NoteList>
     </Column>
     </FormatBarProvider>
   );

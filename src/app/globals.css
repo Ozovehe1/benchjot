@@ -11,15 +11,15 @@
   --bg: var(--charcoal);
   --fg: var(--ash);
   --muted: #8a8885;
-  --faint: #6f6d6a;
+  --faint: #878582; /* was #6f6d6a, 3.51:1; text needs 4.5:1 on bg and tint */
   --line: #2a2a2a;
   --tint: #1d1d1d;
   --ok: var(--ash);
-  --fail: #b0625a;
+  --fail: #c4726a;
   --hl-keyword: #d9d7d4;
   --hl-string: #a3aeb1;
   --hl-number: #c2c0bc;
-  --hl-comment: #6f6d6a;
+  --hl-comment: #878582;
   --hl-type: #b3b1ad;
   color-scheme: dark;
 }
@@ -28,15 +28,15 @@
   --bg: var(--ash);
   --fg: var(--charcoal);
   --muted: #5c5a57;
-  --faint: #7a7874;
+  --faint: #62605d; /* was #7a7874, 3.54:1 */
   --line: #d0cecb;
   --tint: #dedcd9;
-  --ok: #8a8885;
-  --fail: #9a4d45;
+  --ok: var(--charcoal); /* a mark: was #8a8885, 2.84:1 on ash; marks need 3:1 (WCAG 1.4.11) */
+  --fail: #924840;
   --hl-keyword: #161616;
   --hl-string: #4b585c;
   --hl-number: #3f3d3a;
-  --hl-comment: #7a7874;
+  --hl-comment: #62605d;
   --hl-type: #34322f;
   color-scheme: light;
 }

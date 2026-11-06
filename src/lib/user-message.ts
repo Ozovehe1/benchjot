@@ -31,6 +31,8 @@ export const ACTION_TEXT = {
   load_figures: "Couldn’t load the figures.",
   load: "Couldn’t load this.",
   load_notes: "Couldn’t load your notes.",
+  load_map: "Couldn’t load the map.",
+  new_attempt: "Couldn’t start a new attempt.",
   outcome: "Couldn’t save the outcome.",
   parent: "Couldn’t set the parent note.",
   move: "Couldn’t move the note.",
