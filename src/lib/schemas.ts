@@ -64,6 +64,8 @@ export interface Entry {
   user_id: string;
   project_id: string | null;
   parent_id: string | null;
+  /** The note this one is a new attempt of (set by new_attempt()); null otherwise. */
+  derived_from: string | null;
   title: string;
   notes: string;
   outcome: Outcome | null;
@@ -73,8 +75,11 @@ export interface Entry {
 
 export type EntryListItem = Pick<Entry, "id" | "title" | "outcome" | "parent_id" | "updated_at">;
 
-/** Every note's id, title and parent: for links, the tree and the map. */
-export type NoteIndexItem = Pick<Entry, "id" | "title" | "parent_id">;
+/** Every note's id, title, parent, lineage and outcome: for links, the tree and the map. */
+export type NoteIndexItem = Pick<Entry, "id" | "title" | "parent_id" | "derived_from" | "outcome" | "project_id" | "created_at">;
+
+/** The columns useNoteIndex selects; NoteIndexItem's keys. Android's Backend.noteIndex() selects the same. */
+export const NOTE_INDEX_COLUMNS = "id, title, parent_id, derived_from, outcome, project_id, created_at";
 
 /** One [[link]] in a note body, as note_links() returns it (target = the id it carries, if any). */
 export interface NoteLinkRow {

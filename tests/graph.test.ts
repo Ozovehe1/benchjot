@@ -1,18 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildEdges, layoutGraph } from "@/lib/graph";
+import { arrowHead, buildEdges, edgeEnds, layoutGraph, mapHref, type MapNote } from "@/lib/graph";
 import { dragStep, fitView, MAX_ZOOM, zoomAt } from "@/lib/pan-zoom";
 
 const A = "0b6e6a9e-1111-4222-8333-444455556666";
 const B = "1c7f7b0f-2222-4333-9444-555566667777";
 const C = "2d808c1a-3333-4444-a555-666677778888";
-const nodes = [
-  { id: A, title: "Alpha", parent_id: null },
-  { id: B, title: "Beta", parent_id: A },
-  { id: C, title: "Gamma", parent_id: null },
-];
+const note = (id: string, title: string, parent_id: string | null = null): MapNote => ({ id, title, parent_id, derived_from: null, outcome: null, project_id: null, created_at: "2026-11-01T00:00:00Z" });
+const nodes = [note(A, "Alpha"), note(B, "Beta", A), note(C, "Gamma")];
 
 describe("buildEdges", () => {
-  it("adds parent edges and resolved link edges, once per pair", () => {
+  it("adds parent edges and resolved link edges, once per directed pair; a reverse link is mutual", () => {
     const edges = buildEdges(nodes, [
       { source: A, label: "x", id: C },
       { source: C, label: "Alpha", id: null }, // same pair, other way
@@ -22,8 +19,8 @@ describe("buildEdges", () => {
       { source: A, label: "gone", id: "00000000-0000-4000-8000-000000000000" },
     ]);
     expect(edges).toEqual([
-      { source: A, target: B, kind: "parent" },
-      { source: A, target: C, kind: "link" },
+      { source: A, target: B, kind: "parent", mutual: false },
+      { source: A, target: C, kind: "link", mutual: true },
     ]);
   });
 });
@@ -36,6 +33,26 @@ describe("layoutGraph", () => {
     expect(a).toEqual(b);
     expect(a.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
     expect(new Set(a.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`)).size).toBe(3);
+  });
+  it("puts the focus at the origin", () => {
+    const p = layoutGraph(nodes, buildEdges(nodes, []), B).find((n) => n.id === B)!;
+    expect([p.x, p.y]).toEqual([0, 0]);
+  });
+});
+
+describe("edge geometry", () => {
+  it("runs rim to rim and points the arrow at the target", () => {
+    const e = edgeEnds({ x: 0, y: 0 }, { x: 100, y: 0 }, 5, 10)!;
+    expect(e).toEqual({ from: { x: 5, y: 0 }, to: { x: 90, y: 0 } });
+    const [tip, l, r] = arrowHead(e.from, e.to, 8);
+    expect(tip).toEqual({ x: 90, y: 0 });
+    expect(l.x).toBeCloseTo(82);
+    expect(r.x).toBeCloseTo(82);
+    expect(edgeEnds({ x: 0, y: 0 }, { x: 3, y: 0 }, 5, 5)).toBeNull();
+  });
+  it("links Around and Everything", () => {
+    expect(mapHref(A, 9)).toBe(`/map?focus=${A}&depth=3`);
+    expect(mapHref(null)).toBe("/map");
   });
 });
 

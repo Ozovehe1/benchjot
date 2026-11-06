@@ -105,9 +105,11 @@ export function Segmented<T>({
   );
 }
 
-const dotTone = { success: "bg-ok", failed: "bg-fail" } as const;
+// Same marks as the map (lib/graph.ts): a filled circle for successful, a diamond for failed,
+// so the outcome never rests on colour alone (WCAG 1.4.1).
+const dotTone = { success: "size-1.5 rounded-full bg-ok", failed: "size-1.5 rotate-45 bg-fail" } as const;
 
-/** The list's tiny outcome dot (ash = successful, muted red = failed); named for screen readers. */
+/** The list's tiny outcome mark (filled circle = successful, muted red diamond = failed); named for screen readers. */
 export function OutcomeDot({ outcome, name }: { outcome: keyof typeof dotTone; name: string }) {
-  return <span role="img" aria-label={name} title={name} className={cn("inline-block size-1.5 shrink-0 rounded-full", dotTone[outcome])} />;
+  return <span role="img" aria-label={name} title={name} className={cn("inline-block shrink-0", dotTone[outcome])} />;
 }

@@ -31,7 +31,7 @@
   --faint: #7a7874;
   --line: #d0cecb;
   --tint: #dedcd9;
-  --ok: #8a8885;
+  --ok: var(--charcoal); /* a mark: was #8a8885, 2.84:1 on ash; marks need 3:1 (WCAG 1.4.11) */
   --fail: #9a4d45;
   --hl-keyword: #161616;
   --hl-string: #4b585c;

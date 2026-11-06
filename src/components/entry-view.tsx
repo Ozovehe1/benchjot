@@ -8,6 +8,7 @@ import {
   createEntry,
   createSnippets,
   deleteEntry,
+  newAttempt,
   updateEntry,
   useEntry,
   useNoteIndex,
@@ -16,6 +17,7 @@ import {
   useSnippets,
 } from "@/lib/data";
 import { cn, displayTitle } from "@/lib/format";
+import { mapHref } from "@/lib/graph";
 import { backlinksTo } from "@/lib/links";
 import { OUTCOME_CHOICES, type Outcome } from "@/lib/outcome";
 import { afterDeletePath } from "@/lib/paths";
@@ -89,6 +91,23 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   const parent = path.at(-1);
   const subNotes = childrenOf(entry.id, tree);
   const linkedFrom = links ? backlinksTo(entry.id, links, notesIndex) : [];
+  const origin = notesIndex.find((n) => n.id === entry.derived_from);
+  const attempts = notesIndex.filter((n) => n.derived_from === entry.id);
+  const [attemptError, setAttemptError] = useState<string | null>(null);
+  const [attempting, setAttempting] = useState(false);
+
+  async function startAttempt() {
+    setAttempting(true);
+    setAttemptError(null);
+    try {
+      await flushAll(); // the copy takes the body and code as saved
+      const id = await newAttempt(entry.id);
+      router.push(`/n/${id}`);
+    } catch (e) {
+      setAttemptError(userMessage(e, "new_attempt"));
+      setAttempting(false);
+    }
+  }
 
   async function reparent(next: string | null) {
     const previous = parentId;
@@ -158,6 +177,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         right={
           <>
             <SaveIndicator />
+            <TextLink href={mapHref(entry.id, 1)}>Map</TextLink>
             <TextButton onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</TextButton>
           </>
         }
@@ -259,6 +279,17 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         <TextButton onClick={() => void newSubNote()}>New sub-note</TextButton>
       </NoteList>
       <NoteList title="Linked from" notes={linkedFrom} empty="No notes link here." />
+      {origin && <NoteList title="Derived from" notes={[origin]} empty={null} />}
+      <NoteList title="Attempts" notes={attempts} empty={null}>
+        <TextButton onClick={() => void startAttempt()} disabled={attempting}>
+          New attempt
+        </TextButton>
+        {attemptError && (
+          <p role="alert" className="pb-3 text-sm">
+            {attemptError}
+          </p>
+        )}
+      </NoteList>
 
       <div className="mt-12">
         <TextButton onClick={remove}>Delete note</TextButton>
