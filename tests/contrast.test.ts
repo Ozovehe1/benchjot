@@ -47,6 +47,11 @@ const PAIRS: [string, string, string, number][] = [
   ["link suggestion (selected)", "fg", "tint", 4.5],
   ["link suggestion", "muted", "bg", 4.5],
   ["insert sheet items", "fg", "bg", 4.5],
+  // Helper panel (helper-panel.tsx): request bubble, summary and status, the "Online helper" label,
+  // the footnote and the prompt's placeholder.
+  ["helper request on its bubble", "fg", "tint", 4.5],
+  ["helper summary and status", "muted", "bg", 4.5],
+  ["helper label, footnote, placeholder", "faint", "bg", 4.5],
 ];
 
 describe.each([
@@ -57,6 +62,15 @@ describe.each([
     expect(t[fg], fg).toMatch(/^#[0-9a-f]{6}$/i);
     expect(t[bg], bg).toMatch(/^#[0-9a-f]{6}$/i);
     expect(contrast(t[fg]!, t[bg]!)).toBeGreaterThanOrEqual(min);
+  });
+});
+
+describe("helper panel uses only tested tokens", () => {
+  it("text tokens are fg, muted or faint; tint only behind fg", () => {
+    const panel = readFileSync(new URL("../src/components/helper-panel.tsx", import.meta.url), "utf8");
+    const used = new Set([...panel.matchAll(/\btext-(fg|muted|faint|bg|ok|fail)\b/g)].map((m) => m[1]));
+    expect([...used].sort()).toEqual(["faint", "fg", "muted"]);
+    for (const m of panel.matchAll(/className="([^"]*\bbg-tint\b[^"]*)"/g)) if (!m[1]!.includes("hover:bg-tint")) expect(m[1]).toContain("text-fg");
   });
 });
 

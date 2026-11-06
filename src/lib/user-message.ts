@@ -44,6 +44,7 @@ export const ACTION_TEXT = {
   resend: "Couldn’t resend the link.",
   username: "Couldn’t save your username.",
   fix: "Fix couldn’t finish.",
+  helper: "The helper couldn’t finish.",
   run_server: "The server run couldn’t finish.",
   runner_start: "The runner couldn’t start.",
 } as const;
@@ -52,6 +53,7 @@ export type ErrorAction = keyof typeof ACTION_TEXT;
 /** Whole messages that replace prefix + kind text for one action and kind. */
 export const ACTION_OVERRIDES: Partial<Record<ErrorAction, Partial<Record<ErrorKind, string>>>> = {
   fix: { rate_limited: "Fix has hit its limit for now. Try again in {wait}.", too_large: "This code is too long for Fix. Try a smaller part." },
+  helper: { rate_limited: "The helper has hit its limit for now. Try again in {wait}.", too_large: "The answer would be too long for the helper. Ask for something smaller." },
   run_server: { rate_limited: "Server runs have hit their limit for now. Try again in {wait}." },
   sign_in: { rate_limited: "Too many attempts. Try again in {wait}." },
   username: { conflict: "That username is taken. Try another." },

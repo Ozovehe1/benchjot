@@ -1,7 +1,8 @@
 "use client";
-// Browser side of server runs and Fix: call the API routes, map answers to the
+// Browser side of server runs, Fix and the Helper: call the API routes, map answers to the
 // same RunResult the in-browser runners give, so RunOutput shows both alike.
 import type { FixAnswer } from "../fix";
+import type { HelperAnswer, HelperRequest } from "../helper";
 import type { Outcome } from "../outcome";
 import type { ServerRunResponse } from "./server-languages";
 import type { CapturedOutputs, Manifest } from "./outputs";
@@ -62,4 +63,8 @@ export function runOnServer(language: string, code: string, onOutput: (stream: S
 
 export function requestFix(language: string, code: string, error: string, outcome: Outcome | null = null): Promise<FixAnswer> {
   return post<FixAnswer>("/api/fix", { language, code, error, outcome });
+}
+
+export function requestHelper(body: HelperRequest, signal?: AbortSignal): Promise<HelperAnswer> {
+  return post<HelperAnswer>("/api/helper", body, signal);
 }
