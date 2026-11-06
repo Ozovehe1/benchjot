@@ -1,5 +1,6 @@
 // Validation contracts (zod) and row types. One authoritative place for both.
 import { z } from "zod";
+import { MAX_CELL_NOTE } from "./cell-notes";
 import { LANGUAGE_IDS } from "./languages";
 import { OUTCOMES, type Outcome } from "./outcome";
 import { MAX_SAVED_STREAM } from "./run/last-run";
@@ -43,9 +44,12 @@ export const lastRun = z.object({
 });
 export type LastRun = z.output<typeof lastRun>;
 
+/** A cell note ("Note before run" / "Note after run"), Markdown; the user's own words only. */
+const cellNote = z.string().max(MAX_CELL_NOTE, "Cell note is over 100k characters");
+
 export const snippetPatch = snippetInput
   .pick({ language: true, content: true })
-  .extend({ last_run: lastRun.nullable() })
+  .extend({ last_run: lastRun.nullable(), note_before: cellNote, note_after: cellNote })
   .partial();
 export type SnippetPatch = z.input<typeof snippetPatch>;
 
@@ -97,6 +101,10 @@ export interface Snippet {
   content: string;
   position: number;
   last_run: LastRun | null;
+  /** "Note before run", shown above the cell; '' when there is none. */
+  note_before: string;
+  /** "Note after run", shown below the cell's output; '' when there is none. */
+  note_after: string;
   created_at: string;
   updated_at: string;
 }

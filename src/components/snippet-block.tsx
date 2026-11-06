@@ -42,8 +42,20 @@ function useBlobUrls(live: CapturedOutputs | null): Record<string, string> {
   return urls;
 }
 
-/** `outcome` is the note's, sent to Fix as context. */
-export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snippet; index: number; outcome?: Outcome | null }) {
+interface Props {
+  snippet: Snippet;
+  index: number;
+  /** The note's, sent to Fix as context. */
+  outcome?: Outcome | null;
+  /** Shown directly above the cell ("Note before run"); the block knows nothing of what it is. */
+  before?: React.ReactNode;
+  /** Shown directly below the cell's run output ("Note after run"). */
+  after?: React.ReactNode;
+  /** Runs before the block is deleted (saves the cell notes still pending). */
+  onBeforeRemove?: () => Promise<void>;
+}
+
+export function SnippetBlock({ snippet, index, outcome = null, before, after, onBeforeRemove }: Props) {
   const initial: LanguageId = isLanguageId(snippet.language) ? snippet.language : "text";
   const [language, setLanguage] = useState<LanguageId>(initial);
   const [content, setContent] = useState(snippet.content);
@@ -226,6 +238,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
     if (content.trim() && !window.confirm("Remove this code?")) return;
     handle.current?.stop();
     await flush();
+    await onBeforeRemove?.();
     const previous = latestSaved.current;
     await deleteSnippet(snippet);
     if (previous) void outputStore().then((m) => m.deleteOutputs(previous)).catch(() => {});
@@ -233,6 +246,7 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
 
   return (
     <div className="border-t border-line">
+      {before}
       <SnippetHeader
         filename={snippet.filename}
         language={
@@ -301,6 +315,8 @@ export function SnippetBlock({ snippet, index, outcome = null }: { snippet: Snip
           hrefs={savedOutputs.items.map((_, i) => outputPagePath(snippet.entry_id, snippet.id, i))}
         />
       ) : null}
+
+      {after}
 
       {fix && <FixDiff before={fix.before} after={fix.code} summary={fix.summary} onAccept={acceptFix} onReject={() => setFix(null)} />}
 

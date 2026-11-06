@@ -1,6 +1,6 @@
 "use client";
-// One live Markdown text block (the note body; built to sit several times in a note between code
-// cells later). It takes value/onChange for its own Markdown text, owns its CodeMirror history, and
+// One live Markdown text block: the note body, and each code cell's "Note before run" / "Note after
+// run" (cell-note.tsx). It takes value/onChange for its own Markdown text, owns its CodeMirror history, and
 // while focused reports itself to the note's single shared format bar (format-bar.tsx).
 // [[ opens note-title suggestions in that same slot; picking one inserts [[Title|id]] (src/lib/links.ts).
 import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
@@ -20,7 +20,13 @@ interface Props {
   onChange: (value: string) => void;
   notes: readonly NoteRef[];
   selfId: string;
+  /** Placeholder, and the accessible name unless `name` is given. */
   label: string;
+  /** Accessible name when it says more than the placeholder (a cell note names its cell). */
+  name?: string;
+  /** Put the caret in the block as soon as its editor exists (a cell note just expanded). */
+  autoFocus?: boolean;
+  onBlur?: () => void;
   handleRef?: React.Ref<TextBlockHandle>;
   className?: string;
 }
@@ -31,7 +37,7 @@ interface Typing {
   query: string;
 }
 
-export function LiveTextBlock({ value, onChange, notes, selfId, label, handleRef, className }: Props) {
+export function LiveTextBlock({ value, onChange, notes, selfId, label, name = label, autoFocus = false, onBlur, handleRef, className }: Props) {
   const id = useId();
   const report = useReportBlock();
   const [view, setView] = useState<EditorView | null>(null);
@@ -49,6 +55,15 @@ export function LiveTextBlock({ value, onChange, notes, selfId, label, handleRef
       view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true });
     },
   }), [view]);
+
+  const focusOnCreate = useRef(autoFocus);
+  useEffect(() => {
+    if (!view || !focusOnCreate.current) return;
+    focusOnCreate.current = false;
+    view.focus();
+  }, [view]);
+  const blurRef = useRef(onBlur);
+  blurRef.current = onBlur;
 
   const suggestions = useMemo(
     () => (typing && typing.start !== dismissed ? linkSuggestions(typing.query, notes, selfId) : []),
@@ -110,11 +125,14 @@ export function LiveTextBlock({ value, onChange, notes, selfId, label, handleRef
     const q = sel.empty ? linkQueryAt(u.state.doc.toString(), sel.head) : null;
     setTyping(q ? { start: q.start, caret: sel.head, query: q.query } : null);
     if (u.docChanged || u.selectionSet) setActive(0);
-    if (u.focusChanged) setFocused(u.view.hasFocus);
+    if (u.focusChanged) {
+      setFocused(u.view.hasFocus);
+      if (!u.view.hasFocus) blurRef.current?.();
+    }
     setTick((t) => t + 1);
   }, []);
 
-  const extensions = useMemo(() => liveExtensions(label, [suggestKeys, EditorView.updateListener.of(onUpdate)]), [label, suggestKeys, onUpdate]);
+  const extensions = useMemo(() => liveExtensions(name, [suggestKeys, EditorView.updateListener.of(onUpdate)]), [name, suggestKeys, onUpdate]);
 
   // Report to the shared bar while focused (state recomputed on each update via tick).
   useEffect(() => {
