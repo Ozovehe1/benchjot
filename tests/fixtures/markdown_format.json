@@ -508,6 +508,97 @@
   },
   {
     "input": {
+      "text": "a **bold** c",
+      "start": 6,
+      "end": 6
+    },
+    "format": "bold",
+    "output": {
+      "text": "a bold c",
+      "start": 4,
+      "end": 4
+    }
+  },
+  {
+    "input": {
+      "text": "**a b c**",
+      "start": 4,
+      "end": 5
+    },
+    "format": "bold",
+    "output": {
+      "text": "a b c",
+      "start": 2,
+      "end": 3
+    }
+  },
+  {
+    "input": {
+      "text": "x *ital* y",
+      "start": 5,
+      "end": 5
+    },
+    "format": "italic",
+    "output": {
+      "text": "x ital y",
+      "start": 4,
+      "end": 4
+    }
+  },
+  {
+    "input": {
+      "text": "~~gane~~",
+      "start": 4,
+      "end": 4
+    },
+    "format": "strike",
+    "output": {
+      "text": "gane",
+      "start": 2,
+      "end": 2
+    }
+  },
+  {
+    "input": {
+      "text": "`code`",
+      "start": 3,
+      "end": 3
+    },
+    "format": "code",
+    "output": {
+      "text": "code",
+      "start": 2,
+      "end": 2
+    }
+  },
+  {
+    "input": {
+      "text": "$x^2$",
+      "start": 3,
+      "end": 3
+    },
+    "format": "math",
+    "output": {
+      "text": "x^2",
+      "start": 2,
+      "end": 2
+    }
+  },
+  {
+    "input": {
+      "text": "**a** b",
+      "start": 7,
+      "end": 7
+    },
+    "format": "bold",
+    "output": {
+      "text": "**a** b****",
+      "start": 9,
+      "end": 9
+    }
+  },
+  {
+    "input": {
       "text": "a b c",
       "start": 2,
       "end": 3

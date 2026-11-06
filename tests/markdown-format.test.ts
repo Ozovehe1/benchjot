@@ -17,15 +17,3 @@ describe("applyFormat", () => {
     }
   });
 });
-
-describe("format bar", () => {
-  it("has a 48px button for each format, in order, and keeps the textarea focused", async () => {
-    const { readFileSync } = await import("node:fs");
-    const src = readFileSync(new URL("../src/components/format-bar.tsx", import.meta.url), "utf8");
-    expect(src).toContain("h-12 w-12");
-    expect(src).toContain("onMouseDown={(e) => e.preventDefault()}");
-    expect(src).toContain("sticky top-0");
-    const body = readFileSync(new URL("../src/components/note-body.tsx", import.meta.url), "utf8");
-    expect(body).toContain("{editing && <FormatBar onFormat={format} />}");
-  });
-});

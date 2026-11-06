@@ -47,6 +47,14 @@ export const MARKDOWN_FORMAT_CASES: [string, MarkdownFormat, string][] = [
   ["go |", "link", "go [|](url)"],
   ["|\nnext", "list", "- |\nnext"],
   ["**|", "bold", "****|**"],
+  // Inside a token of the same format (the button is lit there): pressing it takes that token's markers off.
+  ["a **bo|ld** c", "bold", "a bo|ld c"],
+  ["**a |b| c**", "bold", "a |b| c"],
+  ["x *it|al* y", "italic", "x it|al y"],
+  ["~~ga|ne~~", "strike", "ga|ne"],
+  ["`co|de`", "code", "co|de"],
+  ["$x^|2$", "math", "x^|2"],
+  ["**a** b|", "bold", "**a** b**|**"],
   // Strike
   ["a |b| c", "strike", "a ~~|b|~~ c"],
   ["a ~~|b|~~ c", "strike", "a |b| c"],

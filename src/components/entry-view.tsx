@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAutosave, useSaveStatus } from "@/lib/autosave";
@@ -23,7 +23,8 @@ import type { Entry, NoteIndexItem } from "@/lib/schemas";
 import { ancestors, childrenOf } from "@/lib/tree";
 import { useAutosize } from "@/lib/use-autosize";
 import { FilePicker } from "./file-picker";
-import { NoteBody } from "./note-body";
+import { FormatBarProvider, FormatBarSlot } from "./format-bar";
+import { LiveTextBlock, type TextBlockHandle } from "./live-text-block";
 import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-parts";
 import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
@@ -121,7 +122,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
     }
   }
   const titleRef = useAutosize(title);
-  const notesRef = useAutosize(notes);
+  const bodyRef = useRef<TextBlockHandle>(null);
   const { data: snippets } = useSnippets(entry.id);
 
   useAutosave({ title, notes }, (v) => updateEntry(entry.id, v), { baseline: { title: entry.title, notes: entry.notes } });
@@ -152,6 +153,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
   }
 
   return (
+    <FormatBarProvider>
     <Column className="pb-24">
       <TopBar
         left={back}
@@ -183,7 +185,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            notesRef.current?.focus();
+            bodyRef.current?.focus();
           }
         }}
         rows={1}
@@ -231,15 +233,19 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
       {preview ? (
         <RenderedBody value={notes} notes={notesIndex} />
       ) : (
-        <NoteBody
-          textareaRef={notesRef}
-          value={notes}
-          onChange={setNotes}
-          notes={notesIndex}
-          selfId={entry.id}
-          label={NOTE_LABEL}
-          className="mt-4 block min-h-24 w-full resize-none overflow-hidden leading-7 outline-none"
-        />
+        <>
+          {/* The one shared format bar for the note's text blocks (sticky here on desktop, above the keyboard on phones). */}
+          <FormatBarSlot />
+          <LiveTextBlock
+            handleRef={bodyRef}
+            value={notes}
+            onChange={setNotes}
+            notes={notesIndex}
+            selfId={entry.id}
+            label={NOTE_LABEL}
+            className="mt-4 block min-h-24 w-full"
+          />
+        </>
       )}
 
       <section aria-label="Code" className="mt-10">
@@ -264,6 +270,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         <TextButton onClick={remove}>Delete note</TextButton>
       </div>
     </Column>
+    </FormatBarProvider>
   );
 }
 

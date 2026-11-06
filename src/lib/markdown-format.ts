@@ -8,7 +8,7 @@
 // The state is read from the first non-empty selected line and the next state is applied to every
 // non-empty selected line (an empty line counts when it is the only one).
 
-import { classifyLines, listMarker, type Edit, type ListKind } from "./live-markdown";
+import { classifyLines, listMarker, liveSpans, type Edit, type ListKind, type LiveKind } from "./live-markdown";
 
 export type { Edit } from "./live-markdown";
 
@@ -28,9 +28,27 @@ const INDENT = "  ";
 export const DIVIDER_BLOCK = "---";
 export const TABLE_BLOCK = "| Column 1 | Column 2 |\n| --- | --- |\n|  |  |";
 
+const WRAP_KIND: Record<string, LiveKind> = { "**": "bold", _: "italic", "~~": "strike", "`": "code", $: "math" };
+
+/** The token of `kind` whose content holds [start, end], with its marker lengths (from the live view). */
+function enclosing(text: string, start: number, end: number, kind: LiveKind): { from: number; to: number; open: number; close: number } | null {
+  const spans = liveSpans(text, start, end);
+  const t = spans.find((s) => s.kind === kind && s.from <= start && s.to >= end);
+  if (!t) return null;
+  const open = spans.find((s) => s.kind === "marker" && s.to === t.from);
+  const close = spans.find((s) => s.kind === "marker" && s.from === t.to);
+  return open && close ? { from: t.from, to: t.to, open: open.to - open.from, close: close.to - close.from } : null;
+}
+
 function wrap(e: Edit, m: string): Edit {
   const { text, start, end } = e;
   const sel = text.slice(start, end);
+  // The cursor or selection is inside a token of this format (e.g. **bo|ld**): take its markers off.
+  const t = enclosing(text, start, end, WRAP_KIND[m]!);
+  if (t && !(start === t.from && end === t.to && t.from === t.to)) {
+    const out = text.slice(0, t.from - t.open) + text.slice(t.from, t.to) + text.slice(t.to + t.close);
+    return { text: out, start: start - t.open, end: end - t.open };
+  }
   // The selection includes the markers: take them off.
   if (sel.length >= 2 * m.length && sel.startsWith(m) && sel.endsWith(m)) {
     const inner = sel.slice(m.length, sel.length - m.length);
