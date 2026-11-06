@@ -59,6 +59,8 @@ const ratio = (a: string, b: string) => {
   return (hi! + 0.05) / (lo! + 0.05);
 };
 
+const TINT = { dark: "#1d1d1d", light: "#dedcd9" } as const;
+
 describe("map colours (WCAG AA)", () => {
   const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
   const palette: Record<string, string> = { charcoal: BRAND.charcoal, ash: BRAND.ash };
@@ -78,7 +80,7 @@ describe("map colours (WCAG AA)", () => {
       for (const m of Object.values(fx.rules.marks) as { color: string }[]) expect(ratio(t[m.color]!, t.bg!)).toBeGreaterThanOrEqual(fx.rules.minContrast.mark);
       for (const e of Object.values(fx.rules.edgeStyle) as { color: string }[]) expect(ratio(t[e.color]!, t.bg!)).toBeGreaterThanOrEqual(fx.rules.minContrast.mark);
       expect(ratio(t.ok!, t.bg!)).toBeGreaterThanOrEqual(fx.rules.minContrast.mark);
-      for (const text of ["fg", "muted"]) expect(ratio(t[text]!, t.bg!)).toBeGreaterThanOrEqual(fx.rules.minContrast.text);
+      for (const text of ["fg", "muted", "faint", "fail"]) for (const on of [t.bg!, TINT[theme]]) expect([text, ratio(t[text]!, on) >= fx.rules.minContrast.text]).toEqual([text, true]);
     });
   }
 });

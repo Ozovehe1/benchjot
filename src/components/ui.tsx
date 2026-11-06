@@ -1,5 +1,6 @@
 // The few shared pieces of UI: a centred column, the logo, a top bar, and buttons.
 // Every tap target is at least 48px tall.
+import * as React from "react";
 import Link from "next/link";
 import { APP_NAME } from "@/config/app";
 import { MARK } from "@/lib/brand";
@@ -112,4 +113,39 @@ const dotTone = { success: "size-1.5 rounded-full bg-ok", failed: "size-1.5 rota
 /** The list's tiny outcome mark (filled circle = successful, muted red diamond = failed); named for screen readers. */
 export function OutcomeDot({ outcome, name }: { outcome: keyof typeof dotTone; name: string }) {
   return <span role="img" aria-label={name} title={name} className={cn("inline-block shrink-0", dotTone[outcome])} />;
+}
+
+export type MenuItem = { label: string; href?: string; onSelect?: () => void; disabled?: boolean };
+
+/** Overflow menu (⋮) for occasional actions. Closes on Escape, outside tap, or a choice; 48 px rows. */
+export function MoreMenu({ items, label = "More" }: { items: MenuItem[]; label?: string }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("pointerdown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+  const row = "flex min-h-12 w-full items-center px-4 text-left text-sm text-fg hover:bg-tint disabled:opacity-50";
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={cn(textBase, textTone(open), "min-w-12 justify-center text-lg")}>
+        <span aria-hidden>⋮</span>
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-20 min-w-44 overflow-hidden rounded-md border border-line bg-bg py-1 shadow-lg">
+          {items.map((it) =>
+            it.href ? (
+              <Link key={it.label} role="menuitem" href={it.href} className={row} onClick={() => setOpen(false)}>{it.label}</Link>
+            ) : (
+              <button key={it.label} type="button" role="menuitem" disabled={it.disabled} className={row} onClick={() => { setOpen(false); it.onSelect?.(); }}>{it.label}</button>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

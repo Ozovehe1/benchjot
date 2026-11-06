@@ -30,7 +30,7 @@ import { NOTE_META_ROW_CLASS, NOTE_TITLE_CLASS, RenderedBody } from "./note-part
 import { ParentPicker } from "./parent-picker";
 import { SaveIndicator } from "./save-indicator";
 import { SnippetBlock } from "./snippet-block";
-import { Column, Segmented, TextButton, TextLink, TopBar } from "./ui";
+import { Column, MoreMenu, Segmented, TextButton, TextLink, TopBar } from "./ui";
 import { userMessage } from "@/lib/user-message";
 
 const NO_NOTES: NoteIndexItem[] = [];
@@ -177,8 +177,14 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
         right={
           <>
             <SaveIndicator />
-            <TextLink href={mapHref(entry.id, 1)}>Map</TextLink>
             <TextButton onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</TextButton>
+            <MoreMenu
+              items={[
+                { label: "Map", href: mapHref(entry.id, 1) },
+                { label: "New attempt", onSelect: () => void startAttempt(), disabled: attempting },
+                { label: "Delete note", onSelect: () => void remove() },
+              ]}
+            />
           </>
         }
       />
@@ -290,10 +296,6 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           </p>
         )}
       </NoteList>
-
-      <div className="mt-12">
-        <TextButton onClick={remove}>Delete note</TextButton>
-      </div>
     </Column>
   );
 }
