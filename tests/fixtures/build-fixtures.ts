@@ -2,6 +2,7 @@
 // scripts/write-fixtures.mjs). Only the cases' own expected answers go in, never the implementation's.
 // Imports are relative with extensions so plain `node --experimental-strip-types` can load this file.
 import { CHECK_SHORTCUT_CASES, MARKDOWN_FORMAT_CASES, MARKDOWN_FORMAT_EXPLICIT, parseCase } from "./markdown-format.ts";
+import { CELL_NOTE_LABELS, COLLAPSE_CASES, LINK_CASES, SEARCH_CASES } from "./cell-notes.ts";
 import { CONTINUE_LIST_CASES, FORMAT_STATE_CASES, LIVE_RULES, LIVE_SPAN_CASES, TOGGLE_CHECK_CASES } from "./live-markdown.ts";
 
 const caret = (s: string) => {
@@ -24,5 +25,11 @@ export function buildFixtures(): Record<string, unknown> {
     formatState: FORMAT_STATE_CASES.map(([input, expected]) => ({ input: parseCase(input), expected })),
     checkShortcut: CHECK_SHORTCUT_CASES.map(([input, output]) => ({ input: caret(input), output: output === null ? null : parseCase(output) })),
   };
-  return { "markdown_format.json": markdownFormat, "live_markdown.json": live };
+  const cellNotes = {
+    labels: CELL_NOTE_LABELS,
+    collapse: COLLAPSE_CASES.map(([text, collapsed]) => ({ text, collapsed })),
+    links: LINK_CASES,
+    search: SEARCH_CASES,
+  };
+  return { "markdown_format.json": markdownFormat, "live_markdown.json": live, "cell_notes.json": cellNotes };
 }
