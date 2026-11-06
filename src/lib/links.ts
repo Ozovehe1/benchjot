@@ -12,7 +12,7 @@
 const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 export const LINK_PATTERN = `\\[\\[([^]|[\\n]+)(?:\\|(${UUID}))?\\]\\]`;
 // JS needs the leading ] in the bracket escaped; Postgres needs it bare.
-const linkRe = () => new RegExp(LINK_PATTERN.replace("[^]", "[^\\]"), "g");
+export const linkRe = () => new RegExp(LINK_PATTERN.replace("[^]", "[^\\]"), "g");
 
 export interface NoteLink {
   label: string;
