@@ -143,7 +143,8 @@ describe("editor cell notes", () => {
 
   it("only the user's typing writes them: nothing else in the app sets note_before / note_after", () => {
     const hits = execSync("grep -rlE 'note_(before|after)' src", { cwd: new URL("..", import.meta.url).pathname, encoding: "utf8" }).trim().split("\n").sort();
-    expect(hits).toEqual(["src/components/cell-note.tsx", "src/components/note-preview.tsx", "src/lib/cell-notes.ts", "src/lib/data.ts", "src/lib/schemas.ts"]);
+    // lib/helper.ts only reads them, into the note the Helper is shown (helper.test.ts checks it writes none).
+    expect(hits).toEqual(["src/components/cell-note.tsx", "src/components/note-preview.tsx", "src/lib/cell-notes.ts", "src/lib/data.ts", "src/lib/helper.ts", "src/lib/schemas.ts"]);
     expect(src("lib/run/server-client.ts")).not.toMatch(/note_|cell-note/);
     expect(src("app/api/fix/route.ts")).not.toMatch(/note_|cell-note/);
   });

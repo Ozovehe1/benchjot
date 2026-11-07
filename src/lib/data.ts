@@ -10,6 +10,7 @@ import { FriendlyError } from "./user-message";
 import type { SourcedLink } from "./links";
 import { DEFAULT_LANGUAGE } from "./languages";
 import { asPlan, type Plan } from "./plan";
+import { savedTurn, type HelperAnswer, type HelperTask, type SavedTurn } from "./helper";
 import { outcomeParam, type OutcomeFilter } from "./outcome";
 import {
   entryPatch,
@@ -228,4 +229,40 @@ export async function deleteSnippet(snippet: Snippet): Promise<void> {
   check(await supabase().from("snippets").delete().eq("id", snippet.id).select("id").single());
   await globalMutate(keys.snippets(snippet.entry_id));
   void refreshLists();
+}
+
+// ------------------------------------------------------------------ helper history
+// The note's saved helper turns (helper_turns) and the summary the database condensed from older
+// ones (helper_summaries). Owner only (RLS). The helper writes only these, never the note.
+
+/** The note's summary ('' when none) and its saved turns, oldest first. Unreadable rows are skipped. */
+export async function loadHelperHistory(entryId: string): Promise<{ summary: string; turns: SavedTurn[] }> {
+  const [rows, summary] = await Promise.all([
+    allRows<unknown>((from, to) =>
+      supabase().from("helper_turns").select("id, task, request, answer, created_at").eq("entry_id", entryId).order("created_at").order("id").range(from, to),
+    ),
+    supabase().from("helper_summaries").select("summary").eq("entry_id", entryId).maybeSingle(),
+  ]);
+  if (summary.error) check(summary);
+  const turns = rows.flatMap((r) => {
+    const t = savedTurn.safeParse(r);
+    return t.success ? [t.data] : [];
+  });
+  return { summary: (summary.data?.summary as string | undefined) ?? "", turns };
+}
+
+/** Saves one answered turn with the note; returns its row id. */
+export async function saveHelperTurn(entryId: string, turn: { task: HelperTask; request: string; answer: HelperAnswer }): Promise<string> {
+  const row = check(await supabase().from("helper_turns").insert({ entry_id: entryId, task: turn.task, request: turn.request, answer: turn.answer }).select("id").single()) as { id: string };
+  return row.id;
+}
+
+/** Clear: deletes one saved turn. */
+export async function deleteHelperTurn(id: string): Promise<void> {
+  check(await supabase().from("helper_turns").delete().eq("id", id).select("id"));
+}
+
+/** Clear on the summary: deletes the note's condensed earlier turns. */
+export async function deleteHelperSummary(entryId: string): Promise<void> {
+  check(await supabase().from("helper_summaries").delete().eq("entry_id", entryId).select("entry_id"));
 }

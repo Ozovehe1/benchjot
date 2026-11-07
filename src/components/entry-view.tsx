@@ -329,7 +329,7 @@ function Editor({ entry, back }: { entry: Entry; back: React.ReactNode }) {
           </p>
         )}
       </NoteList>
-      <HelperPanel open={helper} onClose={closeHelper} readNote={readNote} onInsert={insertCell} />
+      <HelperPanel entryId={entry.id} open={helper} onClose={closeHelper} readNote={readNote} onInsert={insertCell} />
     </Column>
     </FormatBarProvider>
   );
