@@ -2,6 +2,12 @@
 // kept warm between runs; each run gets a fresh namespace. Static file (not
 // bundled) so the Pyodide CDN script can be importScripts()-ed.
 //
+// A run is setup, then the user's code. Setup (Pyodide itself, the packages the code
+// imports, and importing them: bj_preload.py) ends with { type: "start" }, where the
+// time limit starts (src/lib/run/runner.ts); it reports { type: "status" } while it
+// works and fails as { type: "error", setup: true, text } with a message for the user.
+// The CDN files are cached by the browser (max-age 1 year) and by public/sw.js.
+//
 // Code runs through bj_capture.py (next to this file, shared with the server
 // and Android runners), which captures figures, tables and charts into
 // /tmp/bj-out/<id>; they are posted back as { type: "outputs", manifest, files }.
@@ -12,25 +18,73 @@
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/";
 // Pure-Python libraries Pyodide doesn't ship, installed from PyPI on first import.
 const FROM_PYPI = { plotly: "plotly", seaborn: "seaborn" };
+// Python modules served next to this file and importable from /bj.
+const MODULES = ["bj_capture.py", "bj_preload.py"];
+const LOADING_PACKAGES = "Loading Python packages…";
+const OFFLINE_HINT = "Check your connection and run again.";
 let ready = null;
 
 function post(msg, transfer) {
   self.postMessage(msg, transfer || []);
 }
 
+/** A setup failure whose message is for the user (shown as is, outside the time limit). */
+class SetupError extends Error {}
+
 function load(id) {
   if (!ready) {
     post({ id, type: "status", text: "Loading Python…" });
-    importScripts(PYODIDE + "pyodide.js");
+    try {
+      importScripts(PYODIDE + "pyodide.js");
+    } catch (e) {
+      throw new SetupError(`Couldn't download Python. ${OFFLINE_HINT}\n${(e && e.message) || e}`);
+    }
     ready = self.loadPyodide({ indexURL: PYODIDE }).then(async (py) => {
-      const src = await (await fetch("/workers/bj_capture.py", { cache: "no-cache" })).text();
       py.FS.mkdirTree("/bj");
-      py.FS.writeFile("/bj/bj_capture.py", src);
+      for (const name of MODULES) py.FS.writeFile(`/bj/${name}`, await (await fetch(`/workers/${name}`, { cache: "no-cache" })).text());
       py.runPython("import sys\nif '/bj' not in sys.path: sys.path.insert(0, '/bj')");
       return py;
     });
+    // A failed start isn't kept: the next run tries again.
+    ready = ready.catch((e) => {
+      ready = null;
+      throw new SetupError(`Couldn't start Python. ${OFFLINE_HINT}\n${(e && e.message) || e}`);
+    });
   }
   return ready;
+}
+
+/**
+ * Everything the code needs before it runs: Pyodide's packages for its imports, PyPI ones
+ * (FROM_PYPI), then importing them (bj_preload). Pyodide's loadPackage doesn't throw for a
+ * package it couldn't download (it logs "Failed to load ..."): that is a SetupError here.
+ */
+async function prepare(py, id, code) {
+  const failed = [];
+  const details = [];
+  await py.loadPackagesFromImports(code, {
+    messageCallback: (m) => {
+      if (/^Loading /.test(m)) post({ id, type: "status", text: LOADING_PACKAGES });
+      const f = /^Failed to load (.+)$/.exec(m);
+      if (f) failed.push(f[1]);
+    },
+    errorCallback: (m) => details.push(m),
+  });
+  if (failed.length) throw new SetupError(`Couldn't download Python packages (${failed.join(", ")}). ${OFFLINE_HINT}\n${details.join("\n")}`);
+  try {
+    await installFromPypi(py, id, code);
+  } catch (e) {
+    throw new SetupError(`Couldn't install Python packages from PyPI. ${OFFLINE_HINT}\n${(e && e.message) || e}`);
+  }
+  const globals = py.toPy({ __bj_code: code });
+  try {
+    if (py.runPython("import bj_preload\nbool(bj_preload.pending(__bj_code))", { globals, filename: "<bj>" })) {
+      post({ id, type: "status", text: LOADING_PACKAGES });
+      py.runPython("bj_preload.preload(__bj_code)", { globals, filename: "<bj>" });
+    }
+  } finally {
+    globals.destroy();
+  }
 }
 
 async function installFromPypi(py, id, code) {
@@ -38,7 +92,7 @@ async function installFromPypi(py, id, code) {
   const missing = (p) => !py.runPython(`__import__("importlib.util").util.find_spec(${JSON.stringify(p)}) is not None`);
   const wanted = [...new Set(imports.map((m) => FROM_PYPI[m]).filter(Boolean))].filter(missing);
   if (!wanted.length) return;
-  post({ id, type: "status", text: `Loading ${wanted.join(", ")}…` });
+  post({ id, type: "status", text: LOADING_PACKAGES });
   await py.loadPackage("micropip", { messageCallback: () => {} });
   await py.pyimport("micropip").install(wanted);
 }
@@ -122,11 +176,7 @@ self.onmessage = async ({ data }) => {
     py.setStdout({ batched: (s) => post({ id, type: "out", stream: "stdout", text: s + "\n" }) });
     py.setStderr({ batched: (s) => post({ id, type: "out", stream: "stderr", text: s + "\n" }) });
     py.setStdin({ error: true });
-    await py.loadPackagesFromImports(code, {
-      messageCallback: (m) => /^Loading /.test(m) && post({ id, type: "status", text: m }),
-      errorCallback: (m) => post({ id, type: "out", stream: "stderr", text: m + "\n" }),
-    });
-    await installFromPypi(py, id, code);
+    await prepare(py, id, code);
     post({ id, type: "start" });
     const globals = py.toPy({ __bj_code: code, __bj_dir: dir });
     try {
@@ -138,6 +188,7 @@ self.onmessage = async ({ data }) => {
     postOutputs(py, id, dir);
     post({ id, type: "done" });
   } catch (e) {
+    if (e instanceof SetupError) return post({ id, type: "error", setup: true, text: e.message });
     if (py) postOutputs(py, id, dir);
     post({ id, type: "error", text: String((e && e.message) || e) });
   }

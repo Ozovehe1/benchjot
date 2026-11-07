@@ -1,11 +1,12 @@
 "use client";
 // Runs a code block in the browser: Python in the Pyodide worker (kept warm),
-// JS/TS in a fresh sandboxed worker per run. Time limit counts from the moment
-// the code starts (Python's first load and package downloads don't count).
+// JS/TS in a fresh sandboxed worker per run. The time limit counts from the moment
+// the code starts ("start"): Python's setup before it (Pyodide, downloading and importing
+// the code's packages) has its own, longer limit (SETUP_TIMEOUT_MS). Stop works in both.
 import { cleanPythonTraceback, jsErrorLine, pythonErrorLine } from "./errors";
 import { transpile } from "./transpile";
 
-import { RUN_TIMEOUT_MS, type BrowserLanguage, type RunEvents, type RunHandle, type RunResult } from "./types";
+import { RUN_TIMEOUT_MS, SETUP_TIMEOUT_MS, SETUP_TIMEOUT_TEXT, type BrowserLanguage, type RunEvents, type RunHandle, type RunResult } from "./types";
 import type { FigureFormat } from "./outputs";
 import { FriendlyError, messageFor } from "../user-message";
 
@@ -49,13 +50,14 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   };
 
   // Stopping Python means throwing its worker away; the next run loads it again (from cache).
-  const kill = (outcome: "timeout" | "stopped") => {
+  const kill = (outcome: "timeout" | "stopped" | "setup-timeout") => {
     w.terminate();
     if (language === "python") {
       pythonWorker = null;
       for (const fail of [...pendingRenders]) fail(new FriendlyError("Python was stopped while making the file. Try the download again."));
     }
-    end({ outcome, error: null, ms: elapsed() });
+    if (outcome === "setup-timeout") end({ outcome: "error", error: { text: SETUP_TIMEOUT_TEXT, line: null }, ms: 0 });
+    else end({ outcome, error: null, ms: elapsed() });
   };
 
   function onMessage({ data }: MessageEvent) {
@@ -65,6 +67,7 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
         events.onStatus(data.text);
         break;
       case "start":
+        clearTimeout(timer);
         started = performance.now();
         events.onStatus("");
         timer = setTimeout(() => kill("timeout"), timeoutMs);
@@ -79,6 +82,11 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
         end({ outcome: "ok", error: null, ms: elapsed() });
         break;
       case "error": {
+        // Setup's own message (couldn't download …): for the user as is, no code line.
+        if (data.setup) {
+          end({ outcome: "error", error: { text: data.text, line: null }, ms: 0 });
+          break;
+        }
         const text = language === "python" ? cleanPythonTraceback(data.text) : data.text;
         const line = language === "python" ? pythonErrorLine(data.text) : jsErrorLine(data.text);
         end({ outcome: "error", error: { text: language === "python" ? text : firstLine(text), line }, ms: elapsed() });
@@ -94,6 +102,7 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   // A message here is the user's own uncaught error (shown as is); none means the worker itself failed to load.
   w.addEventListener("error", (e) => end({ outcome: "error", error: { text: e.message || messageFor("unknown", "runner_start"), line: null }, ms: elapsed() }), { once: true });
   w.postMessage({ id, code: source });
+  if (language === "python") timer = setTimeout(() => kill("setup-timeout"), SETUP_TIMEOUT_MS);
   return { done, stop: () => kill("stopped") };
 }
 
