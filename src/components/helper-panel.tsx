@@ -2,18 +2,24 @@
 // The note Helper, online (Android: ui/Helper.kt, the same controls and words). Opened from the
 // note's top bar: write code for the note, or ask it a question. The note is read only on the tap that
 // sends. Code goes into the note only when you tap "Insert into note", as a new code cell; it never
-// runs by itself, and the helper never writes the note's text, cell notes or outcome. The turns live
-// in this panel's state while the note is open and are never saved.
+// runs by itself, and the helper never writes the note's text, cell notes or outcome. Each answered
+// turn is saved with the note and shown again when the Helper reopens (here and on Android); older
+// turns are condensed by the database into the note's summary, shown first. Clear deletes them.
 import { useEffect, useReducer, useRef, useState } from "react";
 import { cn } from "@/lib/format";
+import { deleteHelperSummary, deleteHelperTurn, loadHelperHistory, saveHelperTurn } from "@/lib/data";
 import {
+  answeredTurns,
+  HELPER_HISTORY,
   HELPER_LIMITS,
   HELPER_PLACEHOLDER,
   HELPER_SUGGESTIONS,
   HELPER_TASK_CHOICES,
   helperCell,
+  helperHistory,
   helperLanguage,
   helperTurns,
+  historySize,
   isWorking,
   noteContext,
   type HelperAnswer,
@@ -36,6 +42,8 @@ export interface HelperNote {
 }
 
 interface Props {
+  /** The note whose helper history this is. */
+  entryId: string;
   open: boolean;
   onClose: () => void;
   /** Reads the note (saving pending edits first); called only by a send. */
@@ -44,7 +52,7 @@ interface Props {
   onInsert: (cell: SnippetInput) => void;
 }
 
-export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
+export function HelperPanel({ entryId, open, onClose, readNote, onInsert }: Props) {
   const [task, setTask] = useState<HelperTask>("write");
   const [input, setInput] = useState("");
   const [turns, dispatch] = useReducer(helperTurns, [] as HelperTurn[]);
@@ -54,12 +62,33 @@ export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
   const field = useRef<HTMLTextAreaElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const inset = useKeyboardInset();
+  const [summary, setSummary] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Closing the panel stops a request in flight (as closing Android's sheet stops the model).
   useEffect(() => {
     if (open) field.current?.focus();
     else stopRequest(abort, dispatch);
   }, [open]);
+
+  // Each open reads the note's saved turns and summary again (they may have changed on the phone).
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    setNotice(null);
+    loadHelperHistory(entryId).then(
+      (h) => {
+        if (!live) return;
+        setSummary(h.summary);
+        dispatch({ type: "load", turns: h.turns, firstId: nextId.current });
+        nextId.current += h.turns.length;
+      },
+      (e: unknown) => live && setNotice(userMessage(e, "history_load")),
+    );
+    return () => {
+      live = false;
+    };
+  }, [open, entryId]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,14 +112,39 @@ export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
     dispatch({ type: "send", id, task: kind, request });
     try {
       const note = await readNote(); // read now, on this tap only
+      const history = helperHistory(summary, answeredTurns(turns));
       const { requestHelper } = await import("@/lib/run/server-client");
-      const answer = await requestHelper({ task: kind, request, language: helperLanguage(note.cells), title: note.title, note: noteContext(note.body, note.cells).text }, ctrl.signal);
+      const body = { task: kind, request, language: helperLanguage(note.cells), title: note.title, note: noteContext(note.body, note.cells, HELPER_LIMITS.maxContextChars - historySize(history)).text, history };
+      const answer = await requestHelper(body, ctrl.signal);
+      if (ctrl.signal.aborted) return;
       dispatch({ type: "settle", id, state: { status: "done", answer } });
+      saveHelperTurn(entryId, { task: kind, request, answer }).then(
+        (savedId) => dispatch({ type: "saved", id, savedId }),
+        (e: unknown) => setNotice(userMessage(e, "history_save")),
+      );
     } catch (e) {
       if (!ctrl.signal.aborted) dispatch({ type: "settle", id, state: { status: "failed", message: userMessage(e, "helper") } });
     } finally {
       if (abort.current === ctrl) abort.current = null;
     }
+  }
+
+  /** Clear: the turn goes from the panel, and from the history when it was saved. */
+  function clear(turn: HelperTurn) {
+    setNotice(null);
+    if (!turn.savedId) return dispatch({ type: "remove", id: turn.id });
+    deleteHelperTurn(turn.savedId).then(
+      () => dispatch({ type: "remove", id: turn.id }),
+      (e: unknown) => setNotice(userMessage(e, "history_clear")),
+    );
+  }
+
+  function clearSummary() {
+    setNotice(null);
+    deleteHelperSummary(entryId).then(
+      () => setSummary(""),
+      (e: unknown) => setNotice(userMessage(e, "history_clear")),
+    );
   }
 
   function retry(turn: HelperTurn) {
@@ -117,10 +171,18 @@ export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
         <Segmented label="What the helper does" options={HELPER_TASK_CHOICES} value={task} onChange={setTask} />
 
         <div ref={log} aria-live="polite" className="-mx-5 min-h-0 flex-1 overflow-y-auto px-5">
+          {summary && (
+            <section aria-label="Earlier turns" className="border-b border-line py-4">
+              <h3 className="text-xs text-faint">Earlier, condensed after {HELPER_HISTORY.days} days</h3>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted">{summary}</p>
+              <TextButton onClick={clearSummary}>Clear</TextButton>
+            </section>
+          )}
           {turns.map((t) => (
-            <Turn key={t.id} turn={t} onInsert={(a) => { onInsert(helperCell(a)); onClose(); }} onRemove={() => dispatch({ type: "remove", id: t.id })} onRetry={() => retry(t)} />
+            <Turn key={t.id} turn={t} onInsert={(a) => { onInsert(helperCell(a)); onClose(); }} onRemove={() => clear(t)} onRetry={() => retry(t)} />
           ))}
         </div>
+        {notice && <p role="alert" className="pt-2 text-sm text-fg">{notice}</p>}
 
         <div className="pt-2">
           <textarea
@@ -138,7 +200,7 @@ export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
             aria-label={HELPER_PLACEHOLDER[task]}
             className="block max-h-40 min-h-12 w-full resize-none border-b border-line bg-transparent py-3 text-[15px] text-fg outline-none placeholder:text-faint"
           />
-          {!input.trim() && turns.length === 0 && (
+          {!input.trim() && turns.length === 0 && !summary && (
             <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pt-3 [scrollbar-width:none]">
               {HELPER_SUGGESTIONS.map(([label, kind]) => (
                 <button key={label} type="button" onClick={() => void send(label, kind)} className="min-h-12 shrink-0 rounded-full border border-line px-4 text-sm text-fg hover:bg-tint">
@@ -154,7 +216,7 @@ export function HelperPanel({ open, onClose, readNote, onInsert }: Props) {
               <Button onClick={() => void send(input, task)} disabled={!input.trim()}>Send</Button>
             )}
           </div>
-          <p className="pt-3 text-xs text-faint">Reads this note only when you send. Code is added only when you tap Insert, and runs only when you tap Run. Not saved: it ends when you leave this note.</p>
+          <p className="pt-3 text-xs text-faint">Reads this note only when you send. Code is added only when you tap Insert, and runs only when you tap Run. Turns are saved with this note for {HELPER_HISTORY.days} days, then kept as a short summary. Clear deletes them.</p>
         </div>
       </div>
     </div>

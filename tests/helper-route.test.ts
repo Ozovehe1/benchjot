@@ -69,6 +69,31 @@ describe("/api/helper", () => {
     expect(r).toEqual({ status: 200, body: { kind: "prose", text: "It tests a 500-step warmup." } });
   });
 
+  it("ask for a change gets proposed code, and a follow-up is sent with the earlier turns (the reported bug)", async () => {
+    const visual = "import matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.bar(['lr', 'warmup'], [0.1, 500])\nplt.show()";
+    groq.mockResolvedValueOnce(reply(JSON.stringify({ code: visual, summary: "A bar chart of both parameters." })));
+    const first = await json(await helper(post({ ...write, task: "ask", request: "Create more engaging visual" })));
+    expect(first).toEqual({ status: 200, body: { kind: "code", code: visual, summary: "A bar chart of both parameters.", language: "python" } });
+    expect(JSON.parse(String(groq.mock.calls[0]![1]!.body)).messages[0].content).not.toContain("Use only what the note says");
+
+    groq.mockResolvedValueOnce(reply(JSON.stringify({ code: visual.replace("ax.bar", "ax.barh"), summary: "Both parameters, horizontal." })));
+    const history = { summary: "", turns: [{ task: "ask", request: "Create more engaging visual", answer: first.body }] };
+    const follow = await json(await helper(post({ ...write, task: "ask", request: "I mean for the 2 parameter. Can you", history })));
+    expect(follow.body.kind).toBe("code");
+    const messages = JSON.parse(String(groq.mock.calls[1]![1]!.body)).messages as { role: string; content: string }[];
+    expect(messages.map((m) => m.role)).toEqual(["system", "user", "assistant", "user"]);
+    expect(messages[1]!.content).toBe("Question: Create more engaging visual");
+    expect(messages[2]!.content).toContain("ax.bar(");
+    expect(messages[3]!.content.endsWith("Question: I mean for the 2 parameter. Can you")).toBe(true);
+  });
+
+  it("refuses a history over its budget before asking", async () => {
+    const turn = { task: "ask", request: "q", answer: { kind: "prose", text: "a" } };
+    const r = await json(await helper(post({ ...write, history: { summary: "", turns: Array(7).fill(turn) } })));
+    expect(r.status).toBe(400);
+    expect(groq).not.toHaveBeenCalled();
+  });
+
   it("Fix and Helper take from the same counter", async () => {
     groq.mockResolvedValue(reply('{"code":"print(2)","summary":"s"}'));
     await helper(post(write));

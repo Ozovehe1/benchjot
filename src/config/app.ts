@@ -18,6 +18,15 @@ export const FIX_RATE = { perMinute: 6, perDay: 10 } as const;
 // too, so reasoning_effort is "low"); a cut-off answer says "This code is too long for Fix…".
 export const FIX_LIMITS = { maxCodeChars: 16_000, maxErrorChars: 4_000, maxReplyTokens: 3_000 } as const;
 // The note Helper (/api/helper), on the same model, limits and counter as Fix. maxRequestChars: what
-// the user types. maxContextChars: the note as sent (body, then each code cell, then its last error),
-// cut from its end at a line start; each cell's error keeps its last maxErrorChars, cut at a line start.
-export const HELPER_LIMITS = { maxRequestChars: 2_000, maxContextChars: FIX_LIMITS.maxCodeChars, maxErrorChars: FIX_LIMITS.maxErrorChars, maxReplyTokens: FIX_LIMITS.maxReplyTokens } as const;
+// the user types. maxContextChars: the note and its history as sent together (the history first, the
+// note cut from its end at a line start to the room left). The note is the body, then each code cell
+// with its "Note before run", its code, its last run's output (the stdout's last maxOutputChars and the
+// figures and tables it made) or its last error's last maxErrorChars, and its "Note after run".
+export const HELPER_LIMITS = { maxRequestChars: 2_000, maxContextChars: FIX_LIMITS.maxCodeChars, maxErrorChars: FIX_LIMITS.maxErrorChars, maxOutputChars: 2_000, maxReplyTokens: FIX_LIMITS.maxReplyTokens } as const;
+// Helper history (user-approved 2026-11-06): each answered turn is saved per note (helper_turns),
+// kept whole for `days`, then condensed by the database (helper_condense, hourly) into the note's one
+// summary (helper_summaries, at most maxStoredSummaryChars, newest lines kept). Online sends the
+// summary's newest maxSummaryChars and the last `turns` turns, each request cut to maxTurnRequestChars
+// and each answer to maxTurnAnswerChars. The migration 20261107030000_helper_history.sql holds the same
+// numbers (a test checks).
+export const HELPER_HISTORY = { days: 30, turns: 6, maxSummaryChars: 1_500, maxStoredSummaryChars: 4_000, maxTurnRequestChars: 400, maxTurnAnswerChars: 1_200 } as const;

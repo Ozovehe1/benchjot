@@ -10,7 +10,7 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 const TIMEOUT_MS = 50_000;
 
-export type ChatMessage = { role: "system" | "user"; content: string };
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 /** The daily cap's text, shared by Fix and Helper because they share the counter. */
 export function dailyCapText(waitSeconds: number): string {
