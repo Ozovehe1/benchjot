@@ -21,9 +21,13 @@ describe("bj_capture manifests (tests/fixtures/outputs, made by scripts/output-f
   it.each(cases)("%s matches the contract", (c) => {
     expect(manifest.safeParse(read(c)).success).toBe(true);
   });
-  it("saves matplotlib figures as PNG, SVG and PDF", () => {
+  it("saves matplotlib figures as PNG and keeps the figure (with its matplotlib) for SVG / PDF", () => {
+    for (const c of ["matplotlib", "seaborn", "pandas-plot", "sklearn-confusion"]) {
+      const fig = item(c);
+      expect(fig.kind === "image" && Object.keys(fig.files).sort()).toEqual(["mpl", "png"]);
+      expect(fig.kind === "image" && fig.matplotlib).toMatch(/^\d+\.\d+/);
+    }
     const fig = item("matplotlib");
-    expect(fig.kind === "image" && Object.keys(fig.files).sort()).toEqual(["pdf", "png", "svg"]);
     expect(fig.kind === "image" && fig.title).toBe("Training loss");
   });
   it("keeps a table preview with its index and the full CSV", () => {
@@ -37,8 +41,16 @@ describe("bj_capture manifests (tests/fixtures/outputs, made by scripts/output-f
 });
 
 describe("downloadFormats", () => {
-  it("offers a figure's stored files and converted JPG / WebP", () => {
-    expect(formats(item("matplotlib"))).toEqual(["png:file", "jpg:convert", "webp:convert", "svg:file", "pdf:file"]);
+  it("offers a figure's PNG, converted JPG / WebP, and SVG / PDF made from the kept figure", () => {
+    expect(formats(item("matplotlib"))).toEqual(["png:file", "jpg:convert", "webp:convert", "svg:figure", "pdf:figure"]);
+    expect(downloadFormats(item("matplotlib")).filter((f) => f.how === "figure")).toEqual([
+      { format: "svg", label: "SVG", how: "figure", file: "0.mpl" },
+      { format: "pdf", label: "PDF", how: "figure", file: "0.mpl" },
+    ]);
+  });
+  it("offers stored SVG / PDF as files (server runs, figures that couldn't be kept, runs from before)", () => {
+    const fig: OutputItem = { kind: "image", source: "matplotlib", width: 1, height: 1, title: "", files: { png: "0.png", svg: "0.svg", pdf: "0.pdf" } };
+    expect(formats(fig)).toEqual(["png:file", "jpg:convert", "webp:convert", "svg:file", "pdf:file"]);
   });
   it("offers PNG, JPG, WebP, SVG and the spec for Plotly / Vega-Lite; no SVG for Bokeh", () => {
     expect(formats(item("plotly-scatter"))).toEqual(["png:render", "jpg:render", "webp:render", "svg:render", "pdf:render", "json:file"]);
@@ -74,7 +86,7 @@ describe("helpers", () => {
   });
   it("lists every stored path of a run", () => {
     const o = savedOutputs.parse({ ...read("matplotlib"), dir: DIR });
-    expect(outputPaths(o).sort()).toEqual([`${DIR}/0.pdf`, `${DIR}/0.png`, `${DIR}/0.svg`]);
+    expect(outputPaths(o).sort()).toEqual([`${DIR}/0.mpl`, `${DIR}/0.png`]);
   });
   it("rejects folders and names outside the scheme", () => {
     expect(savedOutputs.safeParse({ ...read("matplotlib"), dir: "../x" }).success).toBe(false);

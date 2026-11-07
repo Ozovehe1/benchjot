@@ -13,6 +13,11 @@ const fileName = z.string().regex(/^\d{1,3}\.[a-z0-9]{2,5}$/, "Bad output file n
 const cell = z.union([z.string().max(400), z.number(), z.boolean(), z.null()]);
 
 export const IMAGE_FORMATS = ["png", "svg", "pdf", "jpg", "gif", "webp", "bmp"] as const;
+/** A matplotlib figure kept at run time (bj_capture.FIG_FILE): its SVG and PDF are made from it on Download. */
+export const FIGURE_FILE = "mpl";
+/** The formats made from a kept figure (bj_capture.VECTOR_FORMATS). */
+export const FIGURE_FORMATS = ["svg", "pdf"] as const;
+export type FigureFormat = (typeof FIGURE_FORMATS)[number];
 export const CHART_LIBS = ["plotly", "vega-lite", "bokeh"] as const;
 export type ChartLib = (typeof CHART_LIBS)[number];
 
@@ -25,7 +30,9 @@ export const imageOutput = z.object({
   height: z.number().int().nonnegative(),
   title: z.string().max(500).default(""),
   name: z.string().max(500).optional(),
-  files: files(IMAGE_FORMATS),
+  /** With a kept figure: the matplotlib version that kept it (it loads only in the same one). */
+  matplotlib: z.string().max(40).optional(),
+  files: files([...IMAGE_FORMATS, FIGURE_FILE] as const),
 });
 
 export const tableOutput = z.object({
@@ -105,10 +112,12 @@ export const MIME: Record<string, string> = {
 /**
  * One way to download an output. `file`: a stored file as is. `convert`: re-encoded on
  * the device from `from` (lossless source -> JPG/WebP over a solid background).
- * `render`: drawn by the chart library at download time (web).
+ * `render`: drawn by the chart library at download time (web). `figure`: made by matplotlib
+ * from the figure kept at run time (`file`), in the device's own Python.
  */
 export type DownloadFormat =
   | { format: string; label: string; how: "file"; file: string }
+  | { format: FigureFormat; label: string; how: "figure"; file: string }
   | { format: "jpg" | "webp"; label: string; how: "convert"; from: string }
   | { format: string; label: string; how: "render" };
 
@@ -143,7 +152,9 @@ export function downloadFormats(item: OutputItem): DownloadFormat[] {
     file("jpg");
     file("webp");
   }
-  for (const format of ["svg", "pdf", "gif", "bmp"]) file(format);
+  const kept = f[FIGURE_FILE];
+  for (const format of FIGURE_FORMATS) if (!file(format) && kept) out.push({ format, label: LABEL[format]!, how: "figure", file: kept });
+  for (const format of ["gif", "bmp"]) file(format);
   return out;
 }
 

@@ -5,6 +5,10 @@
 // Code runs through bj_capture.py (next to this file, shared with the server
 // and Android runners), which captures figures, tables and charts into
 // /tmp/bj-out/<id>; they are posted back as { type: "outputs", manifest, files }.
+//
+// { id, render: { data, format, matplotlib } } makes a kept figure's SVG or PDF on
+// Download (bj_capture.render_file), answered by { type: "rendered", data } or
+// { type: "error", text, user }. It never touches a run's namespace.
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.29.3/full/";
 // Pure-Python libraries Pyodide doesn't ship, installed from PyPI on first import.
 const FROM_PYPI = { plotly: "plotly", seaborn: "seaborn" };
@@ -60,7 +64,56 @@ function postOutputs(py, id, dir) {
   }
 }
 
+/** The message of a bj_capture.RenderError (meant for the user), or null for any other failure. */
+function renderErrorText(e) {
+  const last = String((e && e.message) || e).trim().split("\n").pop() || "";
+  return last.startsWith("bj_capture.RenderError: ") ? last.slice("bj_capture.RenderError: ".length) : null;
+}
+
+/** The top-level module a ModuleNotFoundError names, or null. */
+function missingModule(e) {
+  // Pyodide adds lines after the message ("The module 'x' is included in the Pyodide distribution...").
+  const m = [...String((e && e.message) || e).matchAll(/^ModuleNotFoundError: No module named '([\w.]+)'/gm)].pop();
+  return m ? m[1].split(".")[0] : null;
+}
+
+async function render(id, { data, format, matplotlib }) {
+  const src = `/tmp/bj-fig-${id}.mpl`;
+  const dest = `/tmp/bj-fig-${id}.${format}`;
+  try {
+    const py = await load(id);
+    await py.loadPackage("matplotlib", { messageCallback: () => {} });
+    py.FS.writeFile(src, data);
+    const globals = py.toPy({ __bj_src: src, __bj_format: format, __bj_dest: dest, __bj_made: matplotlib ?? null });
+    try {
+      // A figure can refer to a library loaded on demand (pandas' date axes): load it and try again.
+      for (const tried = new Set(); ; ) {
+        try {
+          py.runPython("import bj_capture\nbj_capture.render_file(__bj_src, __bj_format, __bj_dest, __bj_made)", { globals, filename: "<bj>" });
+          break;
+        } catch (e) {
+          const mod = missingModule(e);
+          if (!mod || tried.has(mod)) throw e;
+          tried.add(mod);
+          await py.loadPackagesFromImports(`import ${mod}`, { messageCallback: () => {} });
+          await installFromPypi(py, id, `import ${mod}`);
+        }
+      }
+    } finally {
+      globals.destroy();
+    }
+    const out = py.FS.readFile(dest);
+    post({ id, type: "rendered", data: out }, [out.buffer]);
+  } catch (e) {
+    post({ id, type: "error", text: String((e && e.message) || e), user: renderErrorText(e) });
+  } finally {
+    const py = ready && (await ready.catch(() => null));
+    if (py) for (const p of [src, dest]) if (py.FS.analyzePath(p).exists) py.FS.unlink(p);
+  }
+}
+
 self.onmessage = async ({ data }) => {
+  if (data.render) return render(data.id, data.render);
   const { id, code } = data;
   let py = null;
   const dir = `/tmp/bj-out/${id}`;

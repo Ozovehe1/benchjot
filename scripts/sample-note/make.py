@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""The landing page's example note: runs experiment.py through bj_capture.py (as the
-app does) and writes what it captured, so every number and picture on the landing is real.
+"""The landing page's example note: runs experiment.py through bj_capture.py (as a
+server run does: figures come with their SVG and PDF) and writes what it captured,
+so every number and picture on the landing is real.
 
   python3 scripts/sample-note/make.py          writes src/lib/sample-run.json + public/sample-outputs/
   python3 scripts/sample-note/make.py --check  CI: the run still prints and captures the same
@@ -51,7 +52,7 @@ def capture(out):
     stdout = io.StringIO()
     t = time.perf_counter()
     with contextlib.redirect_stdout(stdout):
-        manifest = bj_capture.run_sync(code, out, filename="experiment.py")
+        manifest = bj_capture.run_sync(code, out, filename="experiment.py", vectors=True)
     return code, stdout.getvalue(), manifest, round((time.perf_counter() - t) * 1000)
 
 
