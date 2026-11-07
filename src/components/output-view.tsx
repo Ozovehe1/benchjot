@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { convertImage, pngToPdf, type DrawnChart } from "@/lib/charts";
 import { dragStep, zoomAt, type View } from "@/lib/pan-zoom";
-import { displayFile, downloadFormats, downloadName, MIME, outputLabel, previewCsv, type DownloadFormat, type OutputItem } from "@/lib/run/outputs";
+import { displayFile, downloadFormats, downloadName, MIME, outputLabel, previewCsv, type DownloadFormat, type FigureFormat, type OutputItem } from "@/lib/run/outputs";
 import { saveBlob } from "@/lib/save-file";
 import { ChartView } from "./chart-view";
 import { TablePreview } from "./run-outputs";
@@ -92,11 +92,19 @@ function clampPan(v: View, r: DOMRect): View {
 }
 
 type Read = (name: string) => Promise<Uint8Array>;
+/** Makes a kept figure's SVG / PDF in Python: (figure file, format, matplotlib that kept it). The note page passes renderFigure. */
+export type RenderFigure = (data: Uint8Array, format: FigureFormat, matplotlib: string | undefined) => Promise<Uint8Array>;
 
-async function download(item: OutputItem, read: Read, f: DownloadFormat, chart: DrawnChart | null, name: string) {
+async function download(item: OutputItem, read: Read, figure: RenderFigure | undefined, f: DownloadFormat, chart: DrawnChart | null, name: string) {
   if (f.how === "file") {
     const data = await read(f.file);
     return saveBlob(name, new Blob([data as BlobPart], { type: MIME[f.format] }));
+  }
+  if (f.how === "figure") {
+    if (!figure) throw new FriendlyError("This figure's SVG and PDF are made in the app.");
+    const data = await read(f.file);
+    const made = item.kind === "image" ? item.matplotlib : undefined;
+    return saveBlob(name, new Blob([(await figure(data, f.format, made)) as BlobPart], { type: MIME[f.format] }));
   }
   if (f.how === "convert") {
     const data = await read(f.from);
@@ -110,7 +118,7 @@ async function download(item: OutputItem, read: Read, f: DownloadFormat, chart: 
 
 /**
  * Output `index` of a run's `items`. `urls`: each file's address by name (undefined while
- * loading); `read`: a file's bytes for downloads; `base` names downloads; `back` and
+ * loading); `read`: a file's bytes for downloads; `figure` makes a kept figure's SVG / PDF; `base` names downloads; `back` and
  * `step(i)` are links; `missing` is shown when there's no such output.
  */
 export function OutputView({
@@ -118,6 +126,7 @@ export function OutputView({
   index,
   urls,
   read,
+  figure,
   base,
   back,
   step,
@@ -129,6 +138,7 @@ export function OutputView({
   index: number;
   urls: Readonly<Record<string, string>> | undefined;
   read: Read;
+  figure?: RenderFigure;
   base: string;
   back: string;
   step: (index: number) => string;
@@ -161,7 +171,7 @@ export function OutputView({
     setBusy(true);
     setError(null);
     try {
-      await download(item, read, chosen, chart.current, downloadName(base, index, chosen.format));
+      await download(item, read, figure, chosen, chart.current, downloadName(base, index, chosen.format));
     } catch (e) {
       setError(userMessage(e, "download"));
     } finally {

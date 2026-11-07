@@ -6,10 +6,13 @@ import { cleanPythonTraceback, jsErrorLine, pythonErrorLine } from "./errors";
 import { transpile } from "./transpile";
 
 import { RUN_TIMEOUT_MS, type BrowserLanguage, type RunEvents, type RunHandle, type RunResult } from "./types";
-import { messageFor } from "../user-message";
+import type { FigureFormat } from "./outputs";
+import { FriendlyError, messageFor } from "../user-message";
 
 let pythonWorker: Worker | null = null;
 let nextId = 1;
+/** Downloads waiting on the Python worker; a Stop or time limit that throws it away fails them. */
+const pendingRenders = new Set<(e: Error) => void>();
 
 function worker(language: BrowserLanguage): Worker {
   if (language === "python") return (pythonWorker ??= new Worker("/workers/python.js"));
@@ -48,7 +51,10 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   // Stopping Python means throwing its worker away; the next run loads it again (from cache).
   const kill = (outcome: "timeout" | "stopped") => {
     w.terminate();
-    if (language === "python") pythonWorker = null;
+    if (language === "python") {
+      pythonWorker = null;
+      for (const fail of [...pendingRenders]) fail(new FriendlyError("Python was stopped while making the file. Try the download again."));
+    }
     end({ outcome, error: null, ms: elapsed() });
   };
 
@@ -89,6 +95,39 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   w.addEventListener("error", (e) => end({ outcome: "error", error: { text: e.message || messageFor("unknown", "runner_start"), line: null }, ms: elapsed() }), { once: true });
   w.postMessage({ id, code: source });
   return { done, stop: () => kill("stopped") };
+}
+
+/**
+ * A figure's SVG or PDF, made by matplotlib from the figure the run kept (bj_capture.render),
+ * in the same Pyodide worker as runs (loaded first when it isn't yet). `matplotlib`: the
+ * version that kept it, from the manifest; another version can't load it and says so.
+ */
+export function renderFigure(data: Uint8Array, format: FigureFormat, matplotlib: string | undefined): Promise<Uint8Array> {
+  const id = nextId++;
+  const w = worker("python");
+  return new Promise<Uint8Array>((resolve, reject) => {
+    const settle = () => {
+      w.removeEventListener("message", onMessage);
+      pendingRenders.delete(fail);
+    };
+    const fail = (e: Error) => {
+      settle();
+      reject(e);
+    };
+    function onMessage({ data: m }: MessageEvent) {
+      if (m.id !== id) return;
+      if (m.type === "rendered") {
+        settle();
+        resolve(m.data);
+      } else if (m.type === "error") {
+        fail(m.user ? new FriendlyError(m.user) : new Error(m.text));
+      }
+    }
+    pendingRenders.add(fail);
+    w.addEventListener("message", onMessage);
+    // A copy goes to the worker: the caller's bytes stay usable.
+    w.postMessage({ id, render: { data: data.slice(), format, matplotlib } });
+  });
 }
 
 /** JS stacks are long; the first line ("TypeError: x is not a function") is what matters. */

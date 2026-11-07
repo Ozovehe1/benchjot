@@ -4,6 +4,7 @@
 import { useSnippets } from "@/lib/data";
 import { notePath, outputPagePath } from "@/lib/paths";
 import { fetchOutput, useOutputUrls } from "@/lib/run/output-store";
+import { renderFigure } from "@/lib/run/runner";
 import { OutputView } from "./output-view";
 
 export function OutputViewer({ noteId, snippetId, index }: { noteId: string; snippetId: string; index: number }) {
@@ -17,6 +18,7 @@ export function OutputViewer({ noteId, snippetId, index }: { noteId: string; sni
       index={index}
       urls={urls}
       read={(name) => fetchOutput(outputs!, name)}
+      figure={renderFigure}
       base={snippet?.filename || "output"}
       back={notePath(noteId)}
       step={(i) => outputPagePath(noteId, snippetId, i)}
