@@ -1,7 +1,15 @@
 // Run contracts shared by the UI and the runners (no heavy imports here).
 import type { CapturedOutputs } from "./outputs";
 
+/** The user's code (and capturing its outputs); setup before it never counts. */
 export const RUN_TIMEOUT_MS = 30_000;
+/**
+ * Python's setup before the code starts: Pyodide and the packages the code imports, downloaded
+ * on the first run (about 40 MB for numpy + scikit-learn + matplotlib: ~5 min at 1 Mbps) and
+ * imported. Past it the run fails with SETUP_TIMEOUT_TEXT rather than waiting forever.
+ */
+export const SETUP_TIMEOUT_MS = 10 * 60_000;
+export const SETUP_TIMEOUT_TEXT = `Python packages didn't finish loading in ${SETUP_TIMEOUT_MS / 60_000} min. Check your connection and run again (what downloaded is kept).`;
 
 export type Stream = "stdout" | "stderr";
 

@@ -2,27 +2,8 @@
 // answers { type: "rendered" } or { type: "error", user }). The worker is a fake here; the
 // Python side (bj_capture.render) is tested in tests/bj_capture_test.py.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FakeWorker } from "./fake-worker";
 
-type Msg = { id: number; render?: { data: Uint8Array; format: string; matplotlib?: string }; code?: string };
-
-class FakeWorker extends EventTarget {
-  static last: FakeWorker | null = null;
-  sent: Msg[] = [];
-  terminated = false;
-  constructor(public url: string) {
-    super();
-    FakeWorker.last = this;
-  }
-  postMessage(m: Msg) {
-    this.sent.push(m);
-  }
-  terminate() {
-    this.terminated = true;
-  }
-  reply(data: object) {
-    this.dispatchEvent(new MessageEvent("message", { data }));
-  }
-}
 
 beforeEach(() => {
   vi.resetModules();
