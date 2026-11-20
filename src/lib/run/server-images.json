@@ -1,0 +1,25 @@
+{
+  "$comment": "The server images for R, MATLAB cells (GNU Octave) and Julia, shared by src/lib/server/modal.ts and scripts/modal-image.mjs (prebuilds them). R and Octave are Ubuntu 24.04's own packages: the exact set the run commands were tested with (2026-11-18), including what Octave needs to write PNGs (gnuplot, Ghostscript, the FreeSans font). python3 is for bj_capture.py --collect, which gathers the figures a run wrote.",
+  "r": {
+    "base": "ubuntu:24.04",
+    "commands": [
+      "ENV DEBIAN_FRONTEND=noninteractive",
+      "RUN apt-get update && apt-get install -y --no-install-recommends python3 r-base-core r-base-dev r-cran-tidyverse r-cran-ggplot2 r-cran-dplyr r-cran-tidyr r-cran-readr r-cran-data.table r-cran-mass r-cran-lme4 r-cran-survival r-cran-randomforest r-cran-caret r-cran-glmnet r-cran-e1071 r-cran-forecast && rm -rf /var/lib/apt/lists/*"
+    ]
+  },
+  "octave": {
+    "base": "ubuntu:24.04",
+    "commands": [
+      "ENV DEBIAN_FRONTEND=noninteractive",
+      "RUN apt-get update && apt-get install -y --no-install-recommends python3 octave octave-statistics octave-signal octave-optim octave-control gnuplot-nox ghostscript fontconfig fonts-dejavu-core fonts-freefont-otf && fc-cache -f && rm -rf /var/lib/apt/lists/*"
+    ]
+  },
+  "julia": {
+    "base": "julia:1.11",
+    "commands": [
+      "ENV DEBIAN_FRONTEND=noninteractive GKSwstype=100",
+      "RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*",
+      "RUN julia -e 'using Pkg; Pkg.add([\"Plots\", \"DataFrames\", \"CSV\", \"Distributions\", \"StatsBase\"]); Pkg.precompile()'"
+    ]
+  }
+}
