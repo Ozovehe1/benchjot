@@ -64,7 +64,8 @@ describe("landing note preview", () => {
   });
 
   it("the landing shows the app itself: real screens captured from it, a tour of its parts", () => {
-    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("/showcase/note.webp")); // the note leads; the Assistant is in the tour
+    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("/showcase/notes.webp")); // the notes list leads; the tour starts with the Assistant
+    expect(page).not.toContain('id: "notes"'); // and doesn't show the list again
     expect(page).toContain("<ScreenTour screens={SCREENS} />");
     expect(page).toContain("Screens from the app, with a sample account.");
     for (const name of ["note", "note-assistant", "note-cell", "note-runs", "data", "figures", "map", "notes"])

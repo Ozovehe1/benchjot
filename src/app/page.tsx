@@ -17,7 +17,6 @@ const SCREENS: readonly TourScreen[] = [
   { id: "data", label: "Data", title: "Real data from five platforms", text: "Search Hugging Face, Zenodo, OpenML, Harvard Dataverse and figshare at once, upload a file, or add one by its address. Any cell opens it by name; save_data() keeps what a cell downloads.", ...shot("data") },
   { id: "figures", label: "Figures", title: "Every figure in one place", text: "Plots, charts and animations from all your notes, searchable. Each opens at its cell and downloads as PNG, SVG or PDF.", ...shot("figures") },
   { id: "map", label: "Research map", title: "See how your work connects", text: "Links, sub-notes and new attempts, drawn as a map. Filled dots worked, red ones failed, hollow ones aren't marked yet.", ...shot("map") },
-  { id: "notes", label: "Notes", title: "One note per experiment", text: "Projects, pinned notes, notes shared with you, and search across titles, notes and code. The same notes on Android, offline too.", ...shot("notes") },
 ];
 
 // Home: the list for signed-in users; for everyone else, the product: a promise, the app itself (real
@@ -59,10 +58,10 @@ export default async function Home() {
           <section aria-label="Benchjot" className="relative mt-14 lg:mt-20">
             <div aria-hidden className="pointer-events-none absolute -inset-x-10 -top-24 h-[420px] bg-[radial-gradient(60%_60%_at_50%_40%,color-mix(in_oklab,var(--fg)_9%,transparent),transparent)]" />
             <div className="relative hidden overflow-hidden rounded-2xl border border-line shadow-float sm:block">
-              <Image src="/showcase/note.webp" alt="A note in Benchjot: its question, setup, result and code cells" width={2880} height={1800} priority sizes="(min-width: 1280px) 1160px, 95vw" className="h-auto w-full" />
+              <Image src="/showcase/notes.webp" alt="Your notes in Benchjot: projects, pinned notes, shared notes and search" width={2880} height={1800} priority sizes="(min-width: 1280px) 1160px, 95vw" className="h-auto w-full" />
             </div>
             <div className="relative mx-auto w-[82%] max-w-[360px] overflow-hidden rounded-[28px] border border-line shadow-float sm:hidden">
-              <Image src="/showcase/note-phone.webp" alt="A note on a phone" width={1082} height={2202} priority sizes="82vw" className="h-auto w-full" />
+              <Image src="/showcase/notes-phone.webp" alt="Your notes on a phone" width={1082} height={2202} priority sizes="82vw" className="h-auto w-full" />
             </div>
           </section>
 
