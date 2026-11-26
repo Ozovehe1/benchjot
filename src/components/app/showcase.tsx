@@ -1,19 +1,46 @@
 "use client";
 // The landing's product tour: real screens of the app (public/showcase/, captured from the app itself
-// with a sample account by scripts/capture-showcase.mjs), one per part of the product. A tab shows its
-// screen; nothing moves by itself (self-advancing carousels get ignored and take control away). Phones
-// see the phone captures.
+// with a sample account by scripts/capture-showcase.mjs), one per part of the product. While on screen it
+// moves to the next screen every STEP_MS, with a bar on the current tab showing when; a tab jumps there
+// and it carries on from that one. With reduced motion it stays where you put it. Phones see the phone
+// captures.
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/ui/format";
 
 export type TourScreen = { id: string; label: string; title: string; text: string; desktop: string; phone: string };
 
+const STEP_MS = 6000;
+
 export function ScreenTour({ screens }: { screens: readonly TourScreen[] }) {
   const [at, setAt] = useState(0);
+  const [seen, setSeen] = useState(false);
+  const [still, setStill] = useState(true);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const set = () => setStill(m.matches);
+    set();
+    m.addEventListener("change", set);
+    return () => m.removeEventListener("change", set);
+  }, []);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setSeen(Boolean(e?.isIntersecting)), { threshold: 0.2 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const playing = seen && !still;
+  // Each change of screen (by itself or by a tab) starts a fresh wait for the next.
+  useEffect(() => {
+    if (!playing) return;
+    const t = setTimeout(() => setAt((i) => (i + 1) % screens.length), STEP_MS);
+    return () => clearTimeout(t);
+  }, [playing, at, screens.length]);
   const s = screens[at]!;
   return (
-    <div>
+    <div ref={box}>
       <div role="tablist" aria-label="Parts of Benchjot" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {screens.map((x, i) => (
           <button
@@ -23,9 +50,11 @@ export function ScreenTour({ screens }: { screens: readonly TourScreen[] }) {
             aria-selected={i === at}
             aria-controls="tour-screen"
             onClick={() => setAt(i)}
-            className={cn("shrink-0 rounded-full px-4 py-2 text-[13.5px] transition-colors", i === at ? "bg-fg text-bg" : "bg-tint text-muted hover:text-fg")}
+            className={cn("relative shrink-0 overflow-hidden rounded-full px-4 py-2 text-[13.5px] transition-colors", i === at ? "bg-fg text-bg" : "bg-tint text-muted hover:text-fg")}
           >
             {x.label}
+            {/* How long until the next screen. */}
+            {i === at && playing && <span aria-hidden key={at} className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-bg/35" style={{ animation: `tour-bar ${STEP_MS}ms linear forwards` }} />}
           </button>
         ))}
       </div>
