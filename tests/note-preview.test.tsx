@@ -75,7 +75,6 @@ describe("landing note preview", () => {
     expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(page).not.toContain("bg-ok"); // no "New" badge with a dot
     expect(SAMPLE_USED_GPU).toEqual([false, true]);
-    expect(page).toContain('href="/example"');
   });
 
   it("the Android button opens the download on the landing page: always the newest build, with how to install it", () => {

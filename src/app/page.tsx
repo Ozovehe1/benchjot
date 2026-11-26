@@ -33,7 +33,6 @@ export default async function Home() {
           <Logo />
           <nav aria-label="Site" className="flex items-center gap-5">
             <TextLink href="#tour" className="hidden sm:inline-flex">Tour</TextLink>
-            <TextLink href="/example" className="hidden sm:inline-flex">Example</TextLink>
             <TextLink href="/guide" className="hidden sm:inline-flex">Guide</TextLink>
             <TextLink href="/login" strong>Sign in</TextLink>
           </nav>
@@ -51,7 +50,6 @@ export default async function Home() {
             </p>
             <nav aria-label="Account" className="mt-9 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:gap-6">
               <ButtonLink href="/login?mode=signup" className="sm:w-auto">Start free</ButtonLink>
-              <TextLink href="/example" strong className="justify-center">See a real note</TextLink>
               <AndroidDownload className="justify-center" />
             </nav>
             <p className="mt-4 text-[13px] text-faint">No card. Nothing to install. 50 AI requests and 10 GPU runs a day.</p>
