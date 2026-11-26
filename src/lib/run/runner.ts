@@ -31,12 +31,13 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
   let timer: ReturnType<typeof setTimeout> | undefined;
   let finish: (r: RunResult) => void = () => {};
   let outputs: RunResult["outputs"] = null;
+  let logged: RunResult["logged"] = null;
   const elapsed = () => (started ? performance.now() - started : 0);
 
   const end = (r: RunResult) => {
     clearTimeout(timer);
     w.removeEventListener("message", onMessage);
-    finish(outputs ? { ...r, outputs } : r);
+    finish({ ...r, ...(outputs ? { outputs } : {}), ...(logged ? { logged } : {}) });
   };
 
   // Stopping Python means throwing its worker away; the next run loads it again (from cache).
@@ -70,6 +71,9 @@ export function runCode(language: BrowserLanguage, code: string, events: RunEven
         break;
       case "outputs":
         outputs = data.outputs;
+        break;
+      case "logged":
+        logged = data.logged;
         break;
       case "saved":
         events.onSaved?.(data.files);

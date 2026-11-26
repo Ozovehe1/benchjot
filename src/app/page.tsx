@@ -59,10 +59,10 @@ export default async function Home() {
           <section aria-label="Benchjot" className="relative mt-14 lg:mt-20">
             <div aria-hidden className="pointer-events-none absolute -inset-x-10 -top-24 h-[420px] bg-[radial-gradient(60%_60%_at_50%_40%,color-mix(in_oklab,var(--fg)_9%,transparent),transparent)]" />
             <div className="relative hidden overflow-hidden rounded-2xl border border-line shadow-float sm:block">
-              <Image src="/showcase/note-assistant.webp" alt="A note in Benchjot with the Assistant open beside it" width={2880} height={1800} priority sizes="(min-width: 1280px) 1160px, 95vw" className="h-auto w-full" />
+              <Image src="/showcase/note.webp" alt="A note in Benchjot: its question, setup, result and code cells" width={2880} height={1800} priority sizes="(min-width: 1280px) 1160px, 95vw" className="h-auto w-full" />
             </div>
             <div className="relative mx-auto w-[82%] max-w-[360px] overflow-hidden rounded-[28px] border border-line shadow-float sm:hidden">
-              <Image src="/showcase/note-assistant-phone.webp" alt="The Assistant on a phone" width={1082} height={2202} priority sizes="82vw" className="h-auto w-full" />
+              <Image src="/showcase/note-phone.webp" alt="A note on a phone" width={1082} height={2202} priority sizes="82vw" className="h-auto w-full" />
             </div>
           </section>
 

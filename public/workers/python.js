@@ -216,6 +216,8 @@ function postOutputs(py, id, dir) {
   if (outputs && outputs.manifest.items.length) {
     post({ id, type: "outputs", outputs }, Object.values(outputs.files).map((f) => f.buffer));
   }
+  // What the code logged with log(), even when it drew nothing (experiment tracking).
+  if (outputs && outputs.manifest.logged) post({ id, type: "logged", logged: outputs.manifest.logged });
   // Files the code passed to save_data(): their bytes, for the page to put in the Data library.
   const saved = [];
   for (const s of (outputs && outputs.manifest.saved) || []) {

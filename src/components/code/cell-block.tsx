@@ -149,7 +149,7 @@ export function CellBlock({ cell, index, outcome = null, before, after, onBefore
       }
     }
     try {
-      const run = toLastRun(chunks, r, where, code, new Date(), saved, r.outputs?.manifest.logged ?? null);
+      const run = toLastRun(chunks, r, where, code, new Date(), saved, r.logged ?? r.outputs?.manifest.logged ?? null);
       await saveLastRun(cell, run);
       // Experiment tracking: a run that logged something joins the note's Runs table.
       if (run.logged) void import("@/lib/data/experiments").then((m) => m.recordRun({ noteId: cell.note_id, cellId: cell.id, ranAt: run.ran_at, outcome: run.outcome, ms: run.ms, where: run.where, codeHash: run.code_hash, logged: run.logged }));

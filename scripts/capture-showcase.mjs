@@ -48,6 +48,10 @@ const browser = await chromium.launch();
 async function screens(page, suffix) {
   await page.route("**/api/data/search**", (r) => r.fulfill({ json: IRIS }));
 
+  // A note, from its top: title, outcome, what it asks and found, its cells.
+  await open(page, `/n/${NOTE}`);
+  await save(page, `note${suffix}`);
+
   // The note with the Assistant open beside it (on a phone, its sheet).
   await open(page, `/n/${NOTE}`);
   await page.getByRole("button", { name: "Assistant" }).first().click();

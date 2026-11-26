@@ -1,5 +1,6 @@
 // Experiment tracking, pure (lib/run/logged.ts): how logged values read, and how runs become a table.
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { chartDefault, differences, formatLogged, loggedColumns, numericColumn, series, sortRuns } from "@/lib/run/logged";
 import { logged, type Logged } from "@/lib/run/outputs";
 
@@ -53,5 +54,21 @@ describe("the chart", () => {
     expect(chartDefault(["lr", "val_loss"])).toBe("val_loss");
     expect(chartDefault(["lr", "epochs"])).toBe("lr");
     expect(chartDefault([])).toBeNull();
+  });
+});
+
+describe("a run that logs but draws nothing still keeps its logged values", () => {
+  it("server runs: logged comes from the manifest even with no outputs", async () => {
+    const { toRunResult } = await import("@/lib/run/server-client");
+    const { result } = toRunResult({ outcome: "ok", stdout: "R2 0.9996\n", stderr: "", exitCode: 0, ms: 8884, line: null, outputs: { manifest: { version: 1, items: [], notes: [], logged: { r2: 0.9996, model: "MLP 64x3" } }, files: {} } } as never);
+    expect(result.outputs).toBeUndefined();
+    expect(result.logged).toEqual({ r2: 0.9996, model: "MLP 64x3" });
+  });
+  it("browser runs: the worker posts logged values on their own", () => {
+    const worker = readFileSync(new URL("../public/workers/python.js", import.meta.url), "utf8");
+    expect(worker).toContain('if (outputs && outputs.manifest.logged) post({ id, type: "logged", logged: outputs.manifest.logged });');
+    const runner = readFileSync(new URL("../src/lib/run/runner.ts", import.meta.url), "utf8");
+    expect(runner).toContain('case "logged":');
+    expect(readFileSync(new URL("../src/components/code/cell-block.tsx", import.meta.url), "utf8")).toContain("r.logged ?? r.outputs?.manifest.logged");
   });
 });

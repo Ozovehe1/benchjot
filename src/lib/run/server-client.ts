@@ -58,7 +58,9 @@ export function toRunResult(r: ServerRunResponse): { chunks: { stream: Stream; t
   ].filter((c) => c.text);
   const errorText = r.outcome === "timeout" ? r.stderr : r.stderr || `Exited with code ${r.exitCode}`;
   const outputs = serverOutputs(r.outputs);
-  return { chunks, result: { outcome: r.outcome, error: failed ? { text: errorText, line: r.line } : null, ms: r.ms, ...(outputs ? { outputs } : {}) } };
+  // Logged values come with the manifest, which arrives even when the run drew nothing.
+  const logged = (r.outputs?.manifest as Manifest | undefined)?.logged ?? null;
+  return { chunks, result: { outcome: r.outcome, error: failed ? { text: errorText, line: r.line } : null, ms: r.ms, ...(outputs ? { outputs } : {}), ...(logged ? { logged } : {}) } };
 }
 
 /** Runs code on the server; output arrives in one piece when the run ends. */

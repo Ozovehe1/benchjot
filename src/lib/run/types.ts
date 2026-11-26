@@ -1,5 +1,5 @@
 // Run contracts shared by the UI and the runners (no heavy imports here).
-import type { CapturedOutputs } from "./outputs";
+import type { CapturedOutputs, Logged } from "./outputs";
 
 /**
  * Browser runs have no time limit by default (2026-11-18, like Colab and Jupyter): the code runs in
@@ -47,6 +47,8 @@ export interface RunResult {
   limitMs?: number;
   /** Figures, tables and charts the run produced (Python), before upload. */
   outputs?: CapturedOutputs | null;
+  /** What the code logged with log(), kept even when the run drew nothing (experiment tracking). */
+  logged?: Logged | null;
   /**
    * The browser can't run this code (Python that needs TensorFlow, PyTorch, or an R package with
    * no browser build); nothing of it ran. Run sends it to the server instead.
