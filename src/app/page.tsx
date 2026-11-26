@@ -41,11 +41,7 @@ export default async function Home() {
 
         <main>
           <section className="mx-auto max-w-[880px] pt-12 text-center lg:pt-20">
-            <a href="#tour" className="inline-flex items-center gap-2 rounded-full border border-line bg-raise px-3.5 py-1.5 text-[12.5px] text-muted transition-colors hover:text-fg">
-              <span className="size-1.5 rounded-full bg-ok" />
-              New: the Assistant, experiment tracking and the Data library
-            </a>
-            <h1 className="mt-7 font-display text-[44px] font-normal leading-[1.02] tracking-[-0.025em] sm:text-[62px] lg:text-[80px]">
+            <h1 className="font-display text-[44px] font-normal leading-[1.02] tracking-[-0.025em] sm:text-[62px] lg:text-[80px]">
               Ask for the experiment.
               <br />
               <span className="text-muted">Keep what happened.</span>

@@ -70,7 +70,8 @@ describe("landing note preview", () => {
     for (const name of ["note-assistant", "note-cell", "note-runs", "data", "figures", "map", "notes"])
       for (const f of [name, `${name}-phone`]) expect(existsSync(new URL(`../public/showcase/${f}.webp`, import.meta.url)), f).toBe(true);
     expect(readFileSync(new URL("../scripts/capture-showcase.mjs", import.meta.url), "utf8")).toContain("public/showcase/");
-    expect(showcase).toContain("prefers-reduced-motion: reduce");
+    expect(showcase).not.toMatch(/setTimeout|setInterval/); // nothing moves by itself
+    expect(page).not.toContain("bg-ok"); // no "New" badge with a dot
     expect(SAMPLE_USED_GPU).toEqual([false, true]);
     expect(page).toContain('href="/example"');
   });
