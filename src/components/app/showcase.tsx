@@ -7,6 +7,7 @@
 // Animations play once a part is on screen; with reduced motion everything shows finished.
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/ui/format";
+import { IconCheck } from "../ui";
 
 /** Whether the visitor asked for less motion (true until known, so the server renders the finished state). */
 function useStill(): boolean {
@@ -137,19 +138,21 @@ export function AppShot({ title, runs, conclusion, code }: { title: string; runs
               <p className="ml-6 rounded-2xl rounded-br-md bg-tint px-3.5 py-2.5 text-[13px] leading-relaxed text-fg">
                 Does a 4-layer net beat a 2-layer one on the spirals? 10 seeds, and log test accuracy.
               </p>
-              <div className={cn("transition-opacity duration-500", b >= 1 ? "opacity-100" : "opacity-0")}>
-                <p className="eyebrow">Plan · {done} of {PLAN.length}</p>
-                <ol className="mt-2 space-y-1.5">
-                  {PLAN.map((p, i) => (
-                    <li key={p} className="flex items-start gap-2.5 text-[12.5px] leading-snug">
-                      <span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border transition-colors duration-300", i < done ? "border-ok bg-ok text-bg" : i === done && b < 9 ? "border-fg/50" : "border-line")}>
-                        {i < done && <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 6.2l2.2 2.2 4.8-5" /></svg>}
+              {/* The plan exactly as the app draws it (assistant-panel PlanList): finished ✓, the current step breathing, the rest waiting. */}
+              <ol aria-label="Plan" className={cn("space-y-1 transition-opacity duration-500", b >= 1 ? "opacity-100" : "opacity-0")}>
+                {PLAN.map((p, i) => {
+                  const isDone = i < done;
+                  const now = i === done && b < 9 && !still;
+                  return (
+                    <li key={p} className="flex items-start gap-2.5 text-[13px]">
+                      <span aria-hidden className="mt-[3px] flex size-4 shrink-0 items-center justify-center">
+                        {isDone ? <IconCheck className="size-3.5 text-ok" /> : now ? <span className="breathe size-2.5 rounded-full bg-fg" /> : <span className="size-3 rounded-full border border-faint" />}
                       </span>
-                      <span className={cn(i < done ? "text-muted line-through decoration-line" : i === done && b < 9 && !still ? "shimmer-text" : "text-fg/90")}>{p}</span>
+                      <span className={cn("leading-relaxed", now ? "shimmer-text" : "text-muted")}>{p}</span>
                     </li>
-                  ))}
-                </ol>
-              </div>
+                  );
+                })}
+              </ol>
               <ul className="space-y-1 font-mono text-[11px] text-faint">
                 {[
                   [2, "Added cell 1 · Python"],
@@ -267,7 +270,12 @@ export function RunAnywhere() {
         <li key={r.where} className={cn("rounded-2xl border px-4 py-3", r.on ? "border-run/40 bg-run/[0.06]" : "border-line bg-bg")}>
           <div className="flex items-center justify-between gap-3">
             <span className="text-[13.5px] text-fg">{r.where}</span>
-            {r.on && <span className={cn("font-mono text-[11px] text-run", !still && "shimmer-text")}>Running · 0:{String(b).padStart(2, "0")}</span>}
+            {r.on && (
+              <span className="flex items-center gap-1.5 font-mono text-[11px] text-run">
+                <span className={cn("size-1.5 rounded-full bg-run", !still && "breathe")} />
+                Running · 0:{String(b).padStart(2, "0")}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{r.what}</p>
         </li>
