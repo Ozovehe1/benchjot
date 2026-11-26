@@ -2,7 +2,7 @@
 // Figures: every visual from every experiment in one place (the lab's results wall), newest first.
 // Filter by kind or by words (a title, a note, what the Assistant saw in it); each opens at its cell.
 import { useDeferredValue, useMemo, useState } from "react";
-import Link from "next/link";
+import { FigureCard } from "./figure-card";
 import { useFigures } from "@/lib/data/figures";
 import { useNoteIndex, useProjects } from "@/lib/data";
 import type { FigureKind } from "@/lib/run/figures";
@@ -56,18 +56,13 @@ export function Figures() {
           const url = data?.urls[f.path];
           return (
             <li key={f.key}>
-              <Link href={`/n/${f.noteId}#cell-${f.cellId}`} className="group block">
-                <span className="block overflow-hidden rounded-xl bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {url && <img src={url} alt={f.seen ?? f.title ?? "Figure"} loading="lazy" className="aspect-[4/3] w-full object-contain transition-transform group-hover:scale-[1.01]" />}
-                </span>
-                <span className="mt-2.5 block truncate text-[14px] font-medium text-fg">{f.title || (f.kind === "animation" ? "Animation" : "Figure")}</span>
-                <span className="mt-0.5 block truncate text-xs text-faint">
-                  {displayTitle(note?.title ?? "")}
-                  {note?.project_id && projectName.get(note.project_id) ? ` · ${projectName.get(note.project_id)}` : ""}
-                  {f.ranAt ? ` · ${listDate(f.ranAt)}` : ""}
-                </span>
-              </Link>
+              <FigureCard
+                href={`/n/${f.noteId}#cell-${f.cellId}`}
+                src={url}
+                alt={f.seen ?? f.title ?? "Figure"}
+                title={f.title || (f.kind === "animation" ? "Animation" : "Figure")}
+                sub={`${displayTitle(note?.title ?? "")}${note?.project_id && projectName.get(note.project_id) ? ` · ${projectName.get(note.project_id)}` : ""}${f.ranAt ? ` · ${listDate(f.ranAt)}` : ""}`}
+              />
             </li>
           );
         })}

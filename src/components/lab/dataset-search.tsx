@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { DATA_FILE_MAX } from "@/lib/data/datasets";
 import { addFoundFile, datasetFiles, searchDatasets, SOURCE_NAMES, type FoundDataset, type FoundFile, type SourceId } from "@/lib/data/dataset-search";
-import { cn } from "@/lib/ui/format";
+import { DatasetRow, PlatformChip } from "./dataset-results";
 import { Button, FIELD, IconSearch, Notice, Spinner } from "../ui";
 
 const mb = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(b >= 10 * 1048576 ? 0 : 1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
@@ -83,9 +83,7 @@ export function DatasetSearch({ onAdded }: { onAdded?: () => void }) {
                   const n = s ? (counts[s] ?? 0) : results.length;
                   if (s && !n) return null;
                   return (
-                    <button key={s ?? "all"} type="button" aria-pressed={only === s} onClick={() => (setOnly(s), setLimit(PAGE))} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors", only === s ? "bg-fg text-bg" : "bg-tint text-muted hover:text-fg")}>
-                      {s ? SOURCE_NAMES[s] : "All"} <span className="tabular-nums opacity-70">{n}</span>
-                    </button>
+                    <PlatformChip key={s ?? "all"} label={s ? SOURCE_NAMES[s] : "All"} count={n} on={only === s} onClick={() => (setOnly(s), setLimit(PAGE))} />
                   );
                 })}
               </div>
@@ -94,16 +92,7 @@ export function DatasetSearch({ onAdded }: { onAdded?: () => void }) {
                   const key = `${d.source}:${d.id}`;
                   return (
                     <li key={key}>
-                      <button type="button" onClick={() => setOpen((o) => (o === key ? null : key))} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-tint/50 sm:px-5" aria-expanded={open === key}>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-medium text-fg">{d.title}</span>
-                          <span className="mt-0.5 block truncate text-xs text-faint">
-                            <span className="text-muted">{SOURCE_NAMES[d.source]}</span>
-                            {d.detail ? ` · ${d.detail}` : ""}
-                          </span>
-                        </span>
-                        <span className="shrink-0 text-xs text-muted">{open === key ? "Hide" : "Files"}</span>
-                      </button>
+                      <DatasetRow title={d.title} platform={SOURCE_NAMES[d.source]} detail={d.detail} open={open === key} onClick={() => setOpen((o) => (o === key ? null : key))} />
                       {open === key && <DatasetFiles dataset={d} onAdded={onAdded} />}
                     </li>
                   );

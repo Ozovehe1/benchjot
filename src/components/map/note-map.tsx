@@ -35,6 +35,7 @@ import {
 } from "@/lib/notes/graph";
 import { dragStep, fitView, zoomAt, type View } from "@/lib/ui/pan-zoom";
 import { ERROR_TEXT, userMessage } from "@/lib/ui/user-message";
+import { EDGE_STYLE, NodeMark } from "./map-marks";
 import { Button, Column, IconMap, IconNote, IconPlus, IconSearch, IconX, Notice, Segmented, TextButton, TextLink, TopBar, Working } from "../ui";
 
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
@@ -47,11 +48,6 @@ const label = (title: string) => {
   return t.length > LABEL_MAX ? `${t.slice(0, LABEL_MAX - 1)}…` : t;
 };
 
-const EDGE_STYLE: Record<EdgeKind, { stroke: string; width: number; dash?: string }> = {
-  link: { stroke: "var(--muted)", width: 1 },
-  parent: { stroke: "var(--faint)", width: 1, dash: "4 4" },
-  derived: { stroke: "var(--fg)", width: 1.5 },
-};
 
 
 interface Props {
@@ -743,12 +739,6 @@ function MapControl({ label, onClick, children }: { label: string; onClick: () =
   );
 }
 
-/** Outcome as a dot: filled (successful), red (failed), hollow (unmarked). */
-function NodeMark({ mark, r }: { mark: Mark; r: number }) {
-  if (mark === "failed") return <circle r={r} fill="var(--fail)" />;
-  if (mark === "success") return <circle r={r} fill="var(--fg)" />;
-  return <circle r={r - 0.75} fill="var(--bg)" stroke="var(--fg)" strokeWidth={1.5} />;
-}
 
 /** Notes with no connection yet: listed under the picture, each opening its note. */
 function LooseNotes({ nodes }: { nodes: GraphNode[] }) {

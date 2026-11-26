@@ -32,7 +32,7 @@ const src = (p: string) => readFileSync(new URL(`../src/${p}`, import.meta.url),
 
 describe("the limits Android shares", () => {
   it("the panel's actions are named for screen readers and tooltips", () => {
-    const panel = src("components/notes/assistant-panel.tsx");
+    const panel = src("components/notes/assistant-panel.tsx") + src("components/notes/assistant-parts.tsx");
     for (const label of ["Insert as a new cell", "Copy", "Delete", "Send", "Stop", "Speak", "Try again", "Undo everything it changed", "Clear conversation"]) expect(panel).toContain(label);
   });
   it("shares Fix's error limit, and reads a whole research note (100,000 characters)", () => {

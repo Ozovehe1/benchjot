@@ -63,16 +63,17 @@ describe("landing note preview", () => {
     expect(readFileSync(new URL("../src/components/outputs/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<SampleNoteTag />}");
   });
 
-  it("the landing shows the app at work, then one tile per part of the product, with real numbers and labelled illustrations", () => {
+  it("the landing shows the app at work, drawn with the app's own components, then what's new", () => {
     expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("<AppShot"));
     expect(page.indexOf("<AppShot")).toBeLessThan(page.indexOf('id="new"'));
-    for (const t of ["An assistant that does the work", "Experiment tracking", "Data from five platforms", "Runs where it needs to", "Research map", "Figures, all in one place", "Share, export, take it with you"]) expect(page).toContain(`title="${t}"`);
-    expect(page).toContain("runs={runs}"); // the sample run's own spirals rows
+    // The same components the app draws, not look-alikes.
+    for (const from of ["./sidebar-body", "../notes/assistant-parts", "../notes/note-parts", "../notes/runs-view", "../code/cell-header", "../outputs/run-output", "../lab/dataset-results", "../lab/figure-card", "../map/map-marks"]) expect(showcase).toContain(`from "${from}"`);
+    for (const t of ["Experiment tracking", "Data from five platforms", "Figures, all in one place", "Runs where it needs to", "Research map"]) expect(page).toContain(`title="${t}"`);
+    expect(page).toContain("The request and plan are an illustration");
+    expect(showcase).toContain("Only the user marks the outcome");
+    expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(SAMPLE_USED_GPU).toEqual([false, true]);
-    expect(showcase).toContain("Illustration"); // the conversation and the map say what they are
-    expect(showcase).toContain("prefers-reduced-motion: reduce"); // finished state, no animation
-    expect(showcase).toContain("Real results for “iris”");
-    expect(page).toContain('href="/example"'); // the whole real note is a tap away
+    expect(page).toContain('href="/example"');
   });
 
   it("the Android button opens the download on the landing page: always the newest build, with how to install it", () => {

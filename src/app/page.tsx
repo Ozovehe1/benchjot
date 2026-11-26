@@ -1,42 +1,77 @@
-import Image from "next/image";
 import { NoteList } from "@/components/notes/note-list";
 import { SiteFooter } from "@/components/app/site-footer";
-import { AppShot, DataSearch, MapSketch, RunAnywhere, RunsChart, Tile, type ShowcaseRun } from "@/components/app/showcase";
+import { AppShot, DataTile, FiguresTile, MapTile, RunsTile, RunTile, Tile, type FigureTileItem, type FoundRow, type ShowcaseNote } from "@/components/app/showcase";
 import { StaticCode } from "@/components/code/static-code";
 import { ButtonLink, Logo, TextLink } from "@/components/ui";
 import { AI_MODEL_NAMES } from "@/config/app";
 import { AndroidDownload } from "@/components/account/android-download";
 import { SAMPLE_NOTE, SAMPLE_OUTPUT_URLS, SAMPLE_CELLS } from "@/lib/sample-note";
 import { isSignedIn } from "@/lib/server/account";
+import type { ExperimentRun } from "@/lib/data/experiments";
+import { listDate } from "@/lib/ui/format";
 
-/** The sample run's spirals rows (task, network, weights, lr, train, test, noisier, 200 points, outer arm), as the showcase shows them. */
-function spiralRuns(): ShowcaseRun[] {
-  const table = SAMPLE_CELLS[0]?.last_run?.outputs?.items.find((i) => i.kind === "table");
+/** The sample note's first cell and its run, as the hero's note shows them. */
+function heroNote(): ShowcaseNote {
+  const cell = SAMPLE_CELLS[0]!;
+  const run = cell.last_run!;
+  const [question = "", setup = "", result = ""] = SAMPLE_NOTE.notes.split("\n\n");
+  return {
+    title: SAMPLE_NOTE.title,
+    body: `${question}\n\n${setup}`,
+    result,
+    filename: cell.filename ?? "balls.py",
+    code: <StaticCode code={cell.content} language="python" label="Code 1" />,
+    progress: run.stdout.split("\n").filter((l) => / done\b/.test(l)),
+    ms: run.ms,
+    runs: spiralRuns(),
+  };
+}
+
+/** The sample run's spirals results, one row per network, as the Runs view shows logged runs. */
+function spiralRuns(): ExperimentRun[] {
+  const run = SAMPLE_CELLS[0]!.last_run!;
+  const table = run.outputs?.items.find((i) => i.kind === "table");
   const rows = table && table.kind === "table" ? table.rows.filter((r) => r[0] === "spirals") : [];
-  const mean = (v: unknown) => String(v ?? "").split(" ")[0] ?? "";
-  return rows.map((r) => ({ network: String(r[1]), lr: String(r[3]), test: mean(r[5]), outer: mean(r[8]) }));
+  const mean = (v: unknown) => Number.parseFloat(String(v ?? "").split(" ")[0] ?? "");
+  return rows.map((r, i) => ({
+    id: `run-${i}`,
+    cellId: "c1",
+    ranAt: new Date(Date.parse(run.ran_at) + i * 60_000).toISOString(),
+    outcome: "ok" as const,
+    ms: run.ms,
+    where: "server" as const,
+    codeHash: run.code_hash,
+    logged: { network: String(r[1]), lr: Number(r[3]), test_accuracy: mean(r[5]), outer_arm_accuracy: mean(r[8]) },
+  }));
 }
 
-/** Every figure the sample note's runs drew, with its title: the Figures tile. */
-function sampleFigures(): { src: string; title: string; width: number; height: number }[] {
+/** Every figure the sample note's runs drew, as Figures shows them. */
+function sampleFigures(): FigureTileItem[] {
   return SAMPLE_CELLS.flatMap((c, cell) =>
-    (c.last_run?.outputs?.items ?? []).flatMap((it) => (it.kind === "image" && it.files.png ? [{ src: SAMPLE_OUTPUT_URLS[cell]?.[it.files.png] ?? "", title: it.title, width: it.width, height: it.height }] : [])),
-  ).filter((f) => f.src);
+    (c.last_run?.outputs?.items ?? []).flatMap((it) =>
+      it.kind === "image" && it.files.png && SAMPLE_OUTPUT_URLS[cell]?.[it.files.png]
+        ? [{ src: SAMPLE_OUTPUT_URLS[cell]![it.files.png]!, title: it.title, sub: `${SAMPLE_NOTE.title} · ${listDate(c.last_run!.ran_at)}` }]
+        : [],
+    ),
+  );
 }
 
-const FIRST_LINES = 9;
+/** Real results for "iris" from the platforms' public searches (checked 26 Nov 2026). */
+const IRIS: FoundRow[] = [
+  { title: "scikit-learn/iris", platform: "Hugging Face" },
+  { title: "iris", platform: "OpenML" },
+  { title: "Scikit-Learn IRIS", platform: "Zenodo" },
+  { title: "Iris dataset for machine learning", platform: "Harvard Dataverse" },
+];
 
-// Home: the list for signed-in users; for everyone else, the product showcase. A centred promise, the
-// whole app at work, then "What's new": one tile per part of the product with its own live interface,
-// and one way to start.
+// Home: the list for signed-in users; for everyone else, the product showcase, drawn with the app's own
+// components (components/app/showcase.tsx): the app at work, then what's new, then one way to start.
 export default async function Home() {
   if (await isSignedIn()) {
     return <NoteList />;
   }
-  const runs = spiralRuns();
-  const figures = sampleFigures();
-  const cell = SAMPLE_CELLS[0]!;
-  const code = cell.content.split("\n").slice(0, FIRST_LINES).join("\n");
+  const note = heroNote();
+  const answer = SAMPLE_CELLS[0]!.note_after ?? "";
   const models = Object.values(AI_MODEL_NAMES).join(" or ");
 
   return (
@@ -75,7 +110,10 @@ export default async function Home() {
           </section>
 
           <section aria-label="The app at work" className="mt-14 lg:mt-20">
-            <AppShot title={SAMPLE_NOTE.title} runs={runs} conclusion={cell.note_after ?? ""} code={<StaticCode code={code} language="python" label="Code 1" />} />
+            <AppShot note={note} answer={answer} />
+            <p className="mt-4 text-center text-[12.5px] text-faint">
+              The app as it is. The request and plan are an illustration; the code, its run, the numbers and the conclusion are from a real run.
+            </p>
           </section>
 
           <section id="new" aria-labelledby="new-title" className="scroll-mt-8 pt-28 lg:pt-36">
@@ -85,60 +123,40 @@ export default async function Home() {
             </div>
 
             <div className="mt-12 grid gap-4 lg:grid-cols-6">
-              <Tile className="lg:col-span-3" title="An assistant that does the work" text={`Ask in words. It plans, writes cells, runs them, reads the error when one fails and fixes the cause. It never invents data or results, and Undo takes it all back. ${models}, your choice.`}>
-                <ul className="space-y-2">
-                  {[
-                    ["Plans and keeps you posted", "Its checklist ticks as each step finishes"],
-                    ["Runs and fixes", "Ran cell 2 · failed  →  Changed cell 2  →  Ran cell 2 · 8.9 s"],
-                    ["Finds real data", "Found 6 datasets  →  Saved N87.h5 to Data · 1.9 MB"],
-                    ["Reads your other notes", "Finds them by words or meaning, and asks them what they found"],
-                  ].map(([a, b]) => (
-                    <li key={a} className="rounded-2xl border border-line bg-bg px-4 py-3">
-                      <p className="text-[13.5px] text-fg">{a}</p>
-                      <p className="mt-0.5 font-mono text-[11.5px] text-faint">{b}</p>
-                    </li>
-                  ))}
-                </ul>
-              </Tile>
-
               <Tile className="lg:col-span-3" title="Experiment tracking" text="End a cell with log(…) and every run joins the note's Runs table and chart, side by side, so the best settings are a glance away.">
-                <RunsChart runs={runs} />
+                <RunsTile runs={note.runs} />
               </Tile>
 
-              <Tile className="lg:col-span-2" title="Data from five platforms" text="Search Hugging Face, Zenodo, OpenML, Harvard Dataverse and figshare at once. Cells open library files by name; save_data() keeps what a cell downloads.">
-                <DataSearch />
+              <Tile className="lg:col-span-3" title="Data from five platforms" text="Search Hugging Face, Zenodo, OpenML, Harvard Dataverse and figshare at once. Cells open library files by name; save_data() keeps what a cell downloads.">
+                <DataTile query="iris" rows={IRIS} />
               </Tile>
 
-              <Tile className="lg:col-span-2" title="Runs where it needs to" text="Each cell goes where it can run, by itself. Server runs keep going after you close the tab.">
-                <RunAnywhere />
+              <Tile className="lg:col-span-6" title="Figures, all in one place" text="Every figure, table and animation is kept with its run. Figures gathers them from all your notes; each downloads as PNG, SVG or PDF.">
+                <FiguresTile items={sampleFigures()} />
               </Tile>
 
-              <Tile className="lg:col-span-2" title="Research map" text="Links, sub-notes and attempts, drawn as a map, so a line of work stays in one picture.">
-                <MapSketch />
+              <Tile className="lg:col-span-3" title="Runs where it needs to" text={`Each cell goes where it can run, by itself. The Assistant runs on ${models}, your choice under the chat box.`}>
+                <RunTile progress={note.progress} />
               </Tile>
 
-              <Tile className="lg:col-span-4" title="Figures, all in one place" text="Every figure, table and animation is kept with its run. Figures gathers them from all your notes; each downloads as PNG, SVG or PDF.">
-                <div className="grid grid-cols-3 gap-3">
-                  {figures.map((f) => (
-                    <figure key={f.src} className="overflow-hidden rounded-xl border border-line bg-white">
-                      <Image src={f.src} alt={f.title} width={f.width} height={f.height} className="aspect-[4/3] h-auto w-full object-contain" sizes="(min-width: 1024px) 260px, 33vw" />
-                    </figure>
-                  ))}
-                </div>
-                <p className="mt-3 text-[11.5px] text-faint">The figures from the sample note&apos;s runs.</p>
-              </Tile>
-
-              <Tile className="lg:col-span-2" title="Share, export, take it with you" text="Share by username or a link. Export to Jupyter, a web page or Markdown. The Android app has the same notes, offline.">
-                <div className="space-y-2">
-                  <div className="truncate rounded-xl border border-line bg-bg px-3.5 py-2.5 font-mono text-[12px] text-muted">benchjot.vercel.app/s/…</div>
-                  <div className="flex flex-wrap gap-2">
-                    {[".ipynb", "Web page", "Markdown", "Android"].map((x) => (
-                      <span key={x} className="rounded-full bg-tint px-3 py-1 text-[12px] text-muted">{x}</span>
-                    ))}
-                  </div>
-                </div>
+              <Tile className="lg:col-span-3" title="Research map" text="Links, sub-notes and attempts drawn as a map: filled dots worked, red failed, hollow not marked yet.">
+                <MapTile />
               </Tile>
             </div>
+
+            <dl className="mt-16 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Undo everything", "The Assistant shows each step as it goes, and Undo puts back all it changed."],
+                ["Share a note", "By username, or with a link anyone can open. You choose whether they see the code."],
+                ["Export", "A whole note as a Jupyter notebook, a web page or Markdown."],
+                ["Android", "The same notes on your phone, Python included, offline too."],
+              ].map(([t, d]) => (
+                <div key={t} className="border-t border-line pt-5">
+                  <dt className="text-[15px] font-medium text-fg">{t}</dt>
+                  <dd className="mt-2 text-[15px] leading-relaxed text-muted">{d}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
 
           <section aria-labelledby="start" className="my-28 rounded-[28px] border border-line bg-raise px-6 py-16 text-center lg:my-36 lg:py-24">

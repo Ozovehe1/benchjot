@@ -114,7 +114,6 @@ describe("Export note in the app", () => {
   });
   it("the landing tells visitors a note can leave in standard formats", () => {
     const page = src("app/page.tsx");
-    expect(page).toContain("Export to Jupyter, a web page or Markdown");
-    expect(page).toContain('".ipynb", "Web page", "Markdown"');
+    expect(page).toContain("A whole note as a Jupyter notebook, a web page or Markdown.");
   });
 });

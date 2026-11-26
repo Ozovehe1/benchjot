@@ -70,7 +70,7 @@ describe.each([
 
 describe("assistant panel uses only tested tokens", () => {
   it("text tokens are fg, muted or faint, bg only on fg, ok and fail only for the marks; tint only behind fg", () => {
-    const panel = readFileSync(new URL("../src/components/notes/assistant-panel.tsx", import.meta.url), "utf8");
+    const panel = ["assistant-panel", "assistant-parts"].map((f) => readFileSync(new URL(`../src/components/notes/${f}.tsx`, import.meta.url), "utf8")).join("\n");
     const used = new Set([...panel.matchAll(/\btext-(fg|muted|faint|bg|ok|fail)\b/g)].map((m) => m[1]));
     expect([...used].sort()).toEqual(["bg", "fail", "faint", "fg", "muted", "ok"]);
     expect(panel).toContain('"bg-fg text-bg"');
