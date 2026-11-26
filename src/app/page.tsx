@@ -42,12 +42,12 @@ export default async function Home() {
         <main>
           <section className="mx-auto max-w-[880px] pt-12 text-center lg:pt-20">
             <h1 className="font-display text-[44px] font-normal leading-[1.02] tracking-[-0.025em] sm:text-[62px] lg:text-[80px]">
-              Ask for the experiment.
+              Run the experiment.
               <br />
               <span className="text-muted">Keep what happened.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-[38rem] text-[17px] leading-relaxed text-muted lg:text-[19px]">
-              Benchjot is a research notebook with an assistant that writes the code, runs it in your browser or on a GPU, logs every run, and writes up the result next to what you expected.
+              Write what you expect, run your code in the browser or on a GPU, and keep every run, figure and result in one note. When you want help, the Assistant can write code, fix errors and find data.
             </p>
             <nav aria-label="Account" className="mt-9 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:gap-6">
               <ButtonLink href="/login?mode=signup" className="sm:w-auto">Start free</ButtonLink>
