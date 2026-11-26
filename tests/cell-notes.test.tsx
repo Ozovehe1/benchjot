@@ -152,7 +152,7 @@ describe("editor cell notes", () => {
     // note-view.tsx only reads them, into Export note (readForExport). lib/ai/agent.ts only names them in a type (the cells it reads). lib/notes/search-hit.ts searches them for the list.
     // app/s/[token]/page.tsx and lib/share/share.ts only read them, into the shared page (shared_note() returns them).
     // lib/notes/outline.ts and note-outline.tsx only read their headings, for the note's Contents.
-    // app/page.tsx only reads the sample note's, into the landing's replay.
+    // app/page.tsx only reads the sample note's, into the landing's showcase.
     expect(hits).toEqual(["src/app/page.tsx", "src/app/s/[token]/page.tsx", "src/components/notes/cell-note.tsx", "src/components/notes/note-outline.tsx", "src/components/notes/note-preview.tsx", "src/components/notes/note-view.tsx", "src/lib/ai/agent.ts", "src/lib/ai/assistant.ts", "src/lib/data/index.ts", "src/lib/notes/cell-notes.ts", "src/lib/notes/outline.ts", "src/lib/notes/schemas.ts", "src/lib/notes/search-hit.ts", "src/lib/sample-note.ts", "src/lib/sample-run.json", "src/lib/share/share.ts"]);
     expect(src("components/notes/note-view.tsx")).not.toMatch(/note_(before|after)\s*:\s*(?!c\.)/); // read (c.note_before), never set
     expect(src("lib/run/server-client.ts")).not.toMatch(/note_|cell-note/);

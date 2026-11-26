@@ -15,7 +15,7 @@ import { lastRun } from "@/lib/notes/schemas";
 const outputs = SAMPLE_CELLS.map((s, cell) => ({ urls: SAMPLE_OUTPUT_URLS[cell]!, hrefs: s.last_run!.outputs!.items.map((_, i) => sampleOutputPath(cell, i)) }));
 const html = renderToStaticMarkup(<NotePreview note={SAMPLE_NOTE} cells={SAMPLE_CELLS} outputs={outputs} />);
 const page = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
-const film = readFileSync(new URL("../src/components/app/product-film.tsx", import.meta.url), "utf8");
+const showcase = readFileSync(new URL("../src/components/app/showcase.tsx", import.meta.url), "utf8");
 const example = readFileSync(new URL("../src/app/example/page.tsx", import.meta.url), "utf8");
 const [balls, digits] = SAMPLE_CELLS;
 
@@ -63,23 +63,16 @@ describe("landing note preview", () => {
     expect(readFileSync(new URL("../src/components/outputs/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<SampleNoteTag />}");
   });
 
-  it("the landing leads with the promise, then a replay of the real run in four scenes, and says it's a replay", () => {
-    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("<ProductFilm"));
-    expect(film.match(/\{ id: "(expect|run|see|conclude)", title/g)).toHaveLength(4);
-    expect(page).toContain("progress={progressLines(run)}"); // the run's own lines, not made up
-    expect(page).toMatch(/A replay of a real run on/);
-    expect(page).toContain('href="/example"'); // the whole note is a tap away
-    expect(film).toContain("prefers-reduced-motion: reduce"); // the finished note, no autoplay
-    expect(film).toContain("onMouseEnter"); // pauses while looked at
-    expect(film).toMatch(/aria-label=\{paused \? "Play the replay" : "Pause the replay"\}/);
-    expect(film).toContain("(sped up)");
-  });
-
-  it("the run scene says where that experiment ran (CPU or GPU, as it ran)", () => {
+  it("the landing shows the app at work, then one tile per part of the product, with real numbers and labelled illustrations", () => {
+    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("<AppShot"));
+    expect(page.indexOf("<AppShot")).toBeLessThan(page.indexOf('id="new"'));
+    for (const t of ["An assistant that does the work", "Experiment tracking", "Data from five platforms", "Runs where it needs to", "Research map", "Figures, all in one place", "Share, export, take it with you"]) expect(page).toContain(`title="${t}"`);
+    expect(page).toContain("runs={runs}"); // the sample run's own spirals rows
     expect(SAMPLE_USED_GPU).toEqual([false, true]);
-    expect(page).toContain('SAMPLE_USED_GPU[0] ? "a server GPU" : "the server\'s CPU"');
-    expect(film).toContain("Running on ${where}");
-    expect(film).toContain("Ran for ${ranFor} on ${where}");
+    expect(showcase).toContain("Illustration"); // the conversation and the map say what they are
+    expect(showcase).toContain("prefers-reduced-motion: reduce"); // finished state, no animation
+    expect(showcase).toContain("Real results for “iris”");
+    expect(page).toContain('href="/example"'); // the whole real note is a tap away
   });
 
   it("the Android button opens the download on the landing page: always the newest build, with how to install it", () => {
@@ -118,8 +111,8 @@ describe("landing note preview", () => {
   });
 
   it("imports nothing that talks to the network", () => {
-    const files = ["notes/note-preview.tsx", "code/static-code.tsx", "notes/note-parts.tsx", "outputs/run-outputs.tsx", "outputs/output-view.tsx", "outputs/sample-output-viewer.tsx", "code/folded-code.tsx", "app/product-film.tsx"].map((f) => `../src/components/${f}`);
-    for (const f of [...files, "../src/lib/sample-note.ts", "../src/lib/landing.ts", "../src/app/example/page.tsx", "../src/app/example/[cell]/out/[index]/page.tsx"])
+    const files = ["notes/note-preview.tsx", "code/static-code.tsx", "notes/note-parts.tsx", "outputs/run-outputs.tsx", "outputs/output-view.tsx", "outputs/sample-output-viewer.tsx", "code/folded-code.tsx", "app/showcase.tsx"].map((f) => `../src/components/${f}`);
+    for (const f of [...files, "../src/lib/sample-note.ts", "../src/app/example/page.tsx", "../src/app/example/[cell]/out/[index]/page.tsx"])
       expect(readFileSync(new URL(f, import.meta.url), "utf8"), f).not.toMatch(/supabase|lib\/data|output-store|server-client|runner/);
   });
 
@@ -162,20 +155,5 @@ describe("highlightSpans", () => {
   });
   it("renders unknown languages as plain text", () => {
     expect(highlightSpans("a b", "text")).toEqual([{ text: "a b" }]);
-  });
-});
-
-describe("the landing's film shows the real run", () => {
-  it("its progress lines, run time and a narrower view of its own table", async () => {
-    const { filmOutputs, progressLines, ranFor } = await import("@/lib/landing");
-    const run = balls!.last_run!;
-    expect(progressLines(run)).toEqual(run.stdout.split("\n").filter((l) => / done\b/.test(l)));
-    expect(progressLines(run).length).toBeGreaterThan(3);
-    expect(ranFor(run)).toBe("7:17");
-    const m = filmOutputs(run.outputs, ["test (same distribution)", "outer arm (extrapolation)"])!;
-    const t = m.items[0]!;
-    expect(t.kind === "table" && t.columns).toEqual(["task", "network", "test (same distribution)", "outer arm (extrapolation)"]);
-    expect(t.kind === "table" && t.rows.length).toBe(run.outputs!.items.find((i) => i.kind === "table")!.kind === "table" ? 6 : 0);
-    expect(m.items[1]!.kind).toBe("image");
   });
 });
