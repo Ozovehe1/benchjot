@@ -1,0 +1,91 @@
+"use client";
+import { copyText } from "@/lib/ui/copy";
+import { useState } from "react";
+import { outputText, type Chunk } from "@/lib/run/last-run";
+import type { RunResult } from "@/lib/run/types";
+import { MoreMenu, Notice, Spinner } from "../ui";
+
+function summary(result: RunResult | null, running: boolean, status: string): string {
+  if (running) return status || "Running…";
+  if (!result) return "";
+  const time = `${(result.ms / 1000).toFixed(2)} s`;
+  switch (result.outcome) {
+    case "ok":
+      return time;
+    case "error":
+      return result.error?.line ? `Error on line ${result.error.line} · ${time}` : `Error · ${time}`;
+    case "timeout":
+      return `Stopped after ${Math.round((result.limitMs ?? result.ms) / 1000)} s (time limit)`;
+    case "stopped":
+      return `Stopped · ${time}`;
+  }
+}
+
+/** Plain monospace output under a code block: stdout, stderr (muted), the error, then time. */
+export function RunOutput({
+  chunks,
+  status,
+  running,
+  result,
+  stale = false,
+  note = null,
+  onClear,
+  onDownload,
+}: {
+  chunks: Chunk[];
+  status: string;
+  running: boolean;
+  result: RunResult | null;
+  /** The code changed since this run. */
+  stale?: boolean;
+  /** A quiet line under the status, e.g. a save failure. */
+  note?: string | null;
+  /** Without it the panel is read-only: no Copy or Clear (e.g. the landing preview). */
+  onClear?: () => void;
+  /** Downloads the whole run (text and every output) as a zip; only when the run has figures or tables. */
+  onDownload?: () => void;
+}) {
+  const error = result?.error?.text;
+  const [copied, setCopied] = useState(false);
+  const text = outputText(chunks, error);
+
+  async function copy() {
+    if (!(await copyText(text))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <section aria-label="Output" className="border-t border-line pt-2">
+      {(chunks.length > 0 || error) && (
+        <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed">
+          {chunks.map((c, i) => (
+            <span key={i} className={c.stream === "stderr" ? "text-muted" : undefined}>
+              {c.text}
+            </span>
+          ))}
+          {error && <span>{error}</span>}
+        </pre>
+      )}
+      <div className="flex items-center justify-between gap-4">
+        <span className="flex min-h-8 items-center gap-2 font-mono text-xs text-faint">
+          {running && <Spinner className="size-3.5 text-muted" />}
+          <span role="status" aria-label="Run status">
+            {summary(result, running, status)}
+          </span>
+          {stale && <span> · Output from an earlier version</span>}
+        </span>
+        {!running && onClear && (
+          <MoreMenu
+            label="More for the output"
+            items={[
+              ...(text ? [{ label: copied ? "Copied" : "Copy output", onSelect: copy }] : []),
+              ...(onDownload ? [{ label: "Download run (zip)", onSelect: onDownload }] : []),
+              { label: "Clear output", onSelect: onClear },
+            ]}
+          />
+        )}
+      </div>
+      {note && <Notice compact className="pb-1 text-xs">{note}</Notice>}
+    </section>
+  );
+}

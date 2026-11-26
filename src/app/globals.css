@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The palette, in one place. Dark is the default: charcoal background, ash-white
+   text and primary buttons, muted ash greys for secondary text and hairlines.
+   Light inverts it. --charcoal and --ash come from src/lib/ui/brand.ts (set on <html>).
+   Syntax colours are greyscale; strings carry the one subtle tint. */
+:root,
+.dark {
+  --bg: var(--charcoal);
+  --fg: var(--ash);
+  /* Three clear text steps (fg, muted, faint), each readable (≥4.5:1 on bg and raise). */
+  --muted: #a8a6a2;
+  --faint: #878582;
+  /* Hairlines are rare (structure is felt, not drawn) and soft where they stay. */
+  --line: #262523;
+  --tint: #1e1d1b;
+  /* Colour only means something: green worked, red failed, amber running. */
+  --ok: #6fb07f;
+  --run: #d4a44c;
+  --fail: #c4726a;
+  --hl-keyword: #d9d7d4;
+  --hl-string: #a3aeb1;
+  --hl-number: #c2c0bc;
+  --hl-comment: #878582;
+  --hl-type: #b3b1ad;
+  /* Depth: a raised surface; only menus and dialogs cast a shadow. */
+  --raise: #1d1c1a;
+  --shell: #121211; /* the sidebar: a step below the work, so the note leads */
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+.light {
+  --bg: var(--ash);
+  --fg: var(--charcoal);
+  --muted: #4a4845;
+  --faint: #62605d;
+  --line: #d6d4d0;
+  --tint: #dedcd9;
+  --ok: #276a3c;
+  --run: #8a5a12;
+  --fail: #924840;
+  --hl-keyword: #161616;
+  --hl-string: #4b585c;
+  --hl-number: #3f3d3a;
+  --hl-comment: #62605d;
+  --hl-type: #34322f;
+  --raise: #efedea;
+  --shell: #e0deda;
+  --shadow-float: 0 8px 24px rgb(40 36 30 / 0.16);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-tint: var(--tint);
+  --color-ok: var(--ok);
+  --color-fail: var(--fail);
+  --color-run: var(--run);
+  --color-shell: var(--shell);
+  --color-raise: var(--raise);
+  --shadow-float: var(--shadow-float);
+  --font-display: var(--font-newsreader), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  /* Titles are set in the display serif; a class on the heading (font-mono, say) still wins. */
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    font-optical-sizing: auto;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--fg) 55%, transparent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+  }
+  input,
+  textarea {
+    font-size: 16px; /* stops Android zoom on focus */
+  }
+  input,
+  textarea,
+  select {
+    background: transparent;
+    color: inherit;
+  }
+  select {
+    font: inherit;
+  }
+  textarea {
+    field-sizing: content; /* grows with its text; useAutosize covers browsers without it */
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--faint);
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+/* ------------------------------------------------------------ markdown preview */
+.prose-notes {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.prose-notes > :first-child { margin-top: 0; }
+.prose-notes > * + * { margin-top: 1.1em; }
+.prose-notes h1,
+.prose-notes h2,
+.prose-notes h3 { font-weight: 600; line-height: 1.35; margin-top: 1.4em; }
+.prose-notes h1 { font-size: 1.25em; }
+.prose-notes h2 { font-size: 1.1em; }
+.prose-notes h3 { font-size: 1em; }
+.prose-notes a { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--faint); }
+.prose-notes ul { list-style: disc; padding-left: 1.3em; }
+.prose-notes ol { list-style: decimal; padding-left: 1.3em; }
+.prose-notes blockquote { border-left: 1px solid var(--line); padding-left: 1em; color: var(--muted); }
+.prose-notes code { font-family: var(--font-mono); font-size: 0.9em; }
+.prose-notes pre { overflow-x: auto; font-size: 13px; line-height: 1.6; padding: 0.75em 0; border-block: 1px solid var(--line); }
+.prose-notes table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.92em; }
+.prose-notes th,
+.prose-notes td { border-bottom: 1px solid var(--line); padding: 0.3em 0.8em 0.3em 0; text-align: left; }
+.prose-notes hr { border-color: var(--line); }
+.prose-notes .katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* ------------------------------------------------------------ codemirror */
+.cm-editor { font-size: 13.5px; }
+.cm-editor.cm-focused { outline: none; }
+.cm-scroller { font-family: var(--font-mono) !important; line-height: 1.65 !important; }
+.cm-errorLine { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.cm-lintRange-error,
+.cm-lintRange-warning,
+.cm-lintRange-info { background-image: none !important; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.cm-lintRange-error { text-decoration-color: var(--fg); }
+.cm-lintRange-warning,
+.cm-lintRange-info { text-decoration-color: var(--faint); }
+.cm-diagnostic { padding: 4px 8px; border-left: none !important; font-size: 12px; }
+
+/* ------------------------------------------------------------ note links */
+.prose-notes a.note-link { text-decoration-style: solid; text-decoration-color: var(--muted); }
+.prose-notes .note-link-missing { color: var(--faint); text-decoration: underline dotted; text-underline-offset: 3px; cursor: default; }
+
+/* ------------------------------------------------------------ app shell */
+/* On desktop the shell's sidebar has the logo and the main links; pages hide their copies. */
+@media (min-width: 64rem) {
+  [data-shell] .shell-hide { display: none; }
+}
+
+/* ------------------------------------------------------------ surfaces and labels */
+/* A raised panel: the page's own colour lifted a step, with a hairline edge. */
+/* A surface, not a box: a raised fill and soft corners; no drawn border (Linear's refresh:
+   "structure should be felt not seen"). */
+@utility card {
+  border-radius: 1rem;
+  background: var(--raise);
+}
+/* A small label above a section or a value: plain words, a step quieter than the text. */
+@utility eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ motion */
+/* Placeholders in the shape of what is loading: a soft band passes over them. */
+.skeleton {
+  background: linear-gradient(90deg, var(--tint) 0%, color-mix(in oklab, var(--tint) 60%, var(--line)) 50%, var(--tint) 100%) 0 0 / 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+}
+@keyframes skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+
+/* The assistant beside the note on a wide screen (assistant-panel.tsx): the page makes room for it. */
+@media (min-width: 1024px) {
+  .assistant-open [data-shell] { padding-right: 480px; transition: padding-right 200ms ease; }
+}
+
+/* The assistant at half height on a phone: the page's end can scroll above the sheet. */
+@media (max-width: 639px) {
+  .assistant-half [data-shell] { padding-bottom: 58dvh; }
+}
+
+/* The Assistant at work: its status line shimmers (a light sweeping across the words) instead of a
+   spinner, and the step in progress breathes. Still text when the reader asks for reduced motion. */
+.shimmer-text {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--fg) 50%, var(--muted) 65%, var(--muted) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-text 2s linear infinite;
+}
+@keyframes shimmer-text { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+.breathe { animation: breathe 1.6s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text { animation: none; background: none; color: var(--muted); }
+  .breathe { animation: none; opacity: 1; }
+}
+
+/* The landing's product film (product-film.tsx). */
+@keyframes film-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes film-caret { 50% { opacity: 0; } }
