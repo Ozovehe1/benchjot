@@ -422,8 +422,8 @@ function Editor({ note, back }: { note: Note; back: React.ReactNode }) {
             </Button>
             <TextButton onClick={() => shareSheet.current?.open()} aria-haspopup="dialog" aria-label={shared ? "Shared: change or stop" : "Share"} title={shared ? "Shared with a link" : "Share"}>
               <IconLink className="size-4" />
-              <span className="hidden sm:inline">{shared ? "Shared" : "Share"}</span>
-              {shared && <span aria-hidden className="size-1.5 rounded-full bg-ok sm:hidden" />}
+              {/* On phones the icon alone means Share; a shared note says so in words. */}
+              <span className={shared ? undefined : "hidden sm:inline"}>{shared ? "Shared" : "Share"}</span>
             </TextButton>
             <TextButton onClick={() => setPreview((p) => !p)} aria-label={preview ? "Edit" : "Preview"} title={preview ? "Edit" : "Preview"}>
               {preview ? <IconPen className="size-4" /> : <IconEye className="size-4" />}
