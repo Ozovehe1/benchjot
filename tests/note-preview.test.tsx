@@ -63,14 +63,13 @@ describe("landing note preview", () => {
     expect(readFileSync(new URL("../src/components/outputs/sample-output-viewer.tsx", import.meta.url), "utf8")).toContain("badge={<SampleNoteTag />}");
   });
 
-  it("the landing shows the app at work, drawn with the app's own components, then what's new", () => {
-    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("<AppShot"));
-    expect(page.indexOf("<AppShot")).toBeLessThan(page.indexOf('id="new"'));
-    // The same components the app draws, not look-alikes.
-    for (const from of ["./sidebar-body", "../notes/assistant-parts", "../notes/note-parts", "../notes/runs-view", "../code/cell-header", "../outputs/run-output", "../lab/dataset-results", "../lab/figure-card", "../map/map-marks"]) expect(showcase).toContain(`from "${from}"`);
-    for (const t of ["Experiment tracking", "Data from five platforms", "Figures, all in one place", "Runs where it needs to", "Research map"]) expect(page).toContain(`title="${t}"`);
-    expect(page).toContain("The request and plan are an illustration");
-    expect(showcase).toContain("Only the user marks the outcome");
+  it("the landing shows the app itself: real screens captured from it, a tour of its parts", () => {
+    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("/showcase/note-assistant.webp"));
+    expect(page).toContain("<ScreenTour screens={SCREENS} />");
+    expect(page).toContain("Screens from the app, with a sample account.");
+    for (const name of ["note-assistant", "note-cell", "note-runs", "data", "figures", "map", "notes"])
+      for (const f of [name, `${name}-phone`]) expect(existsSync(new URL(`../public/showcase/${f}.webp`, import.meta.url)), f).toBe(true);
+    expect(readFileSync(new URL("../scripts/capture-showcase.mjs", import.meta.url), "utf8")).toContain("public/showcase/");
     expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(SAMPLE_USED_GPU).toEqual([false, true]);
     expect(page).toContain('href="/example"');

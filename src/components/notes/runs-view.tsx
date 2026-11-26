@@ -53,7 +53,7 @@ export function RunsView({ runs, cells, onGoToCell, onRemove, className = "mt-12
         <MetricChart runs={all} metric={chartMetric} options={numeric} onMetric={setMetric} cellNo={cellNo} />
       )}
 
-      <div className="card mt-4 overflow-x-auto">
+      <div className="card relative mt-4 overflow-x-auto">
         <table className="w-full min-w-max border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-line text-left text-xs text-muted">
