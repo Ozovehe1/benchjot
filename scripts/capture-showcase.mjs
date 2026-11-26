@@ -65,6 +65,12 @@ async function screens(page, suffix) {
   await page.waitForTimeout(1200);
   await save(page, `note-cell${suffix}`);
 
+  // The same cell's figure, whole, with its caption and the note written after the run.
+  await page.locator("[id^='cell-'] img").first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.evaluate((desk) => window.scrollBy(0, desk ? -150 : -40), suffix === "");
+  await page.waitForTimeout(1200);
+  await save(page, `note-figure${suffix}`);
+
   // The note's Runs: chart and table.
   await page.locator("section[aria-label='Runs']").scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollBy(0, -40));
