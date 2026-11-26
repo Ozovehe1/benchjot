@@ -14,6 +14,8 @@ const { chromium, devices } = createRequire(import.meta.url)("playwright");
 
 const BASE = process.env.PREVIEW_URL ?? "http://localhost:5300/";
 const NOTE = "e0000000-0000-4000-8000-000000000001";
+/** The sample account's short experiment (weight decay on noisy moons), run for the first picture. */
+const EXPERIMENT = "e0000000-0000-4000-8000-000000000010";
 const OUT = new URL("../public/showcase/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
@@ -92,6 +94,28 @@ async function screens(page, suffix) {
   await page.waitForTimeout(800);
   await save(page, `data${suffix}`);
 }
+
+/**
+ * The landing's first picture: one short experiment, whole, on one screen: its question, what was
+ * expected, the code, and the chart its run drew. The cell is run here, for real (Python in the
+ * browser), and the picture ends just below the chart.
+ */
+async function hero(page, name) {
+  await open(page, `/n/${EXPERIMENT}`);
+  await page.getByRole("button", { name: /^Run$/ }).first().click();
+  await page.waitForSelector("[id^='cell-'] img", { timeout: 240_000 });
+  await page.waitForTimeout(3000);
+  const top = name.endsWith("phone") ? await page.locator("[id^='cell-']").first().evaluate((el) => el.getBoundingClientRect().top + window.scrollY - 16) : 0;
+  await page.evaluate((y) => window.scrollTo(0, y), top);
+  await page.waitForTimeout(600);
+  const bottom = await page.locator("[id^='cell-'] img").first().evaluate((el) => el.getBoundingClientRect().bottom + 56);
+  const { width, height } = page.viewportSize();
+  const png = await page.screenshot({ clip: { x: 0, y: 0, width, height: Math.min(height, Math.ceil(bottom)) } });
+  await sharp(png).webp({ quality: 86 }).toFile(`${OUT}${name}.webp`);
+  console.log("saved", name);
+}
+await hero(await browser.newPage({ viewport: { width: 1440, height: 1500 }, deviceScaleFactor: 2 }), "note-hero");
+await hero(await browser.newPage({ ...devices["Pixel 7"], viewport: { width: 412, height: 1400 } }), "note-hero-phone");
 
 await screens(await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), "");
 await screens(await browser.newPage({ ...devices["Pixel 7"] }), "-phone");

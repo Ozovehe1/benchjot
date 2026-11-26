@@ -64,11 +64,13 @@ describe("landing note preview", () => {
   });
 
   it("the landing shows the app itself: real screens captured from it, a tour of its parts", () => {
-    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("/showcase/note-figure.webp")); // a note with a run's figure leads
+    expect(page.indexOf("<h1")).toBeLessThan(page.indexOf("/showcase/note-hero.webp")); // one short experiment, with its chart, leads
     expect(page.indexOf('id: "assistant"')).toBeLessThan(page.indexOf('id: "notes"')); // the tour starts with the Assistant, ends with the list
     expect(page).toContain("<ScreenTour screens={SCREENS} />");
+    expect(existsSync(new URL("../public/showcase/note-hero.webp", import.meta.url))).toBe(true);
+    expect(existsSync(new URL("../public/showcase/note-hero-phone.webp", import.meta.url))).toBe(true);
     expect(page).toContain("Screens from the app, with a sample account.");
-    for (const name of ["note", "note-figure", "note-assistant", "note-cell", "note-runs", "data", "figures", "map", "notes"])
+    for (const name of ["note", "note-assistant", "note-cell", "note-runs", "data", "figures", "map", "notes"])
       for (const f of [name, `${name}-phone`]) expect(existsSync(new URL(`../public/showcase/${f}.webp`, import.meta.url)), f).toBe(true);
     expect(readFileSync(new URL("../scripts/capture-showcase.mjs", import.meta.url), "utf8")).toContain("public/showcase/");
     expect(showcase).toContain("setTimeout(() => setAt((i) => (i + 1) % screens.length), STEP_MS)"); // moves on by itself
