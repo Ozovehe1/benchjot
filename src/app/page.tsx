@@ -79,7 +79,7 @@ export default async function Home() {
 
           <dl className="mt-24 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Any language", "Python and R in your browser. Julia, MATLAB, C++ and Fortran on a GPU server."],
+              ["Seven languages", "Python and R run in your browser or on a server. C, C++, Fortran, Julia and MATLAB code (through GNU Octave) run on a server. Only Python can use a GPU."],
               ["Share a note", "By username, or with a link anyone can open. You choose whether they see the code."],
               ["Export", "A whole note as a Jupyter notebook, a web page or Markdown."],
               ["Android", "The same notes on your phone, Python included, offline too."],
