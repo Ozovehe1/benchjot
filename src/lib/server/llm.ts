@@ -221,7 +221,15 @@ const passing = (e: unknown) => !(e instanceof Anthropic.APIConnectionTimeoutErr
  * Where a 400 says the request was malformed ("messages.3.content.1: ..."), without anything the user
  * wrote: quoted text is cut out and the rest is capped.
  */
-export const requestFault = (message: string) => message.replace(/"[^"]*"|'[^']*'|`[^`]*`/g, "…").slice(0, 300);
+export function requestFault(e: InstanceType<typeof Anthropic.APIError>): string {
+  const body = e.error as { error?: { message?: unknown } } | undefined;
+  const message = typeof body?.error?.message === "string" ? body.error.message : e.message;
+  return message.replace(/"[^"]{40,}"|'[^']{40,}'|`[^`]{40,}`/g, "…").slice(0, 400);
+}
+
+/** The request's shape for the log: each message's role and its blocks' types, never their text. */
+export const requestShape = (messages: Anthropic.Beta.BetaMessageParam[]) =>
+  messages.map((m, i) => `${i}:${m.role}[${typeof m.content === "string" ? "text" : (m.content ?? []).map((b) => b.type).join(",")}]`).join(" ");
 
 const REFUSED = "The AI declined this request. Try asking it another way.";
 
@@ -308,7 +316,7 @@ export async function askModel<T>(session: Session, model: AiModel, action: Erro
         }
       }
     } catch (e) {
-      console.error("llm request failed", e instanceof Anthropic.APIError ? `${e.status} ${e.name}${e instanceof Anthropic.BadRequestError ? `: ${requestFault(e.message)}` : ""}` : e);
+      console.error("llm request failed", e instanceof Anthropic.APIError ? `${e.status} ${e.name}${e instanceof Anthropic.BadRequestError ? `: ${requestFault(e)} | ${requestShape(messages)}` : ""}` : e);
       response = failure(e, action);
       retry = passing(e);
     }
