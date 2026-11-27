@@ -217,6 +217,12 @@ function failure(e: unknown, action: ErrorAction): NextResponse {
 /** Whether trying again could help: a dropped connection or a server error (the SDK already retried once). */
 const passing = (e: unknown) => !(e instanceof Anthropic.APIConnectionTimeoutError) && (e instanceof Anthropic.APIConnectionError || (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500));
 
+/**
+ * Where a 400 says the request was malformed ("messages.3.content.1: ..."), without anything the user
+ * wrote: quoted text is cut out and the rest is capped.
+ */
+export const requestFault = (message: string) => message.replace(/"[^"]*"|'[^']*'|`[^`]*`/g, "…").slice(0, 300);
+
 const REFUSED = "The AI declined this request. Try asking it another way.";
 
 /**
@@ -302,7 +308,7 @@ export async function askModel<T>(session: Session, model: AiModel, action: Erro
         }
       }
     } catch (e) {
-      console.error("llm request failed", e instanceof Anthropic.APIError ? `${e.status} ${e.name}` : e);
+      console.error("llm request failed", e instanceof Anthropic.APIError ? `${e.status} ${e.name}${e instanceof Anthropic.BadRequestError ? `: ${requestFault(e.message)}` : ""}` : e);
       response = failure(e, action);
       retry = passing(e);
     }
