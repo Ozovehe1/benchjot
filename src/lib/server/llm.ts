@@ -162,6 +162,33 @@ function fromClaude(model: AiModel, msg: Anthropic.Beta.BetaMessage): { content:
 }
 
 /**
+ * A turn with its server-side calls answered: a call Anthropic ran on its side (web_search, web_fetch,
+ * code_execution: a server_tool_use) whose result isn't in the same turn is dropped, and so is a result
+ * without its call. Claude refuses a conversation holding one (400), so a reply that stopped at the
+ * app's own tool call before its code_execution ran would otherwise block every later step.
+ */
+export function pairedTurn<T extends { type: string }>(turn: readonly T[]): T[] {
+  const id = (b: T, key: "id" | "tool_use_id") => (b as unknown as Record<string, unknown>)[key];
+  const results = new Set(turn.filter((b) => b.type.endsWith("_tool_result")).map((b) => id(b, "tool_use_id")));
+  const calls = new Set(turn.filter((b) => b.type === "server_tool_use").map((b) => id(b, "id")));
+  return turn.filter((b) => (b.type === "server_tool_use" ? results.has(id(b, "id")) : b.type.endsWith("_tool_result") && b.type !== "tool_result" ? calls.has(id(b, "tool_use_id")) : true));
+}
+
+/** The conversation with every assistant turn's server-side calls answered (pairedTurn); a turn left empty goes. */
+export function pairedMessages(messages: Anthropic.Beta.BetaMessageParam[]): Anthropic.Beta.BetaMessageParam[] {
+  const out: Anthropic.Beta.BetaMessageParam[] = [];
+  for (const m of messages) {
+    if (m.role !== "assistant" || typeof m.content === "string" || !m.content) {
+      out.push(m);
+      continue;
+    }
+    const content = pairedTurn(m.content);
+    if (content.length) out.push(content.length === m.content.length ? m : { ...m, content });
+  }
+  return out;
+}
+
+/**
  * The Assistant's web tools, run on Anthropic's side: search the web and read a page (docs, a paper,
  * a dataset's download address). Sonnet gets the current versions (they filter results with code);
  * Haiku the basic ones. A few uses per step, so one step can't run up the bill.
@@ -267,7 +294,8 @@ export async function askModel<T>(session: Session, model: AiModel, action: Erro
   if (!claude()) return jsonError(503, NOT_SET_UP);
   const limited = await allowance(session);
   if (limited) return limited;
-  const { system, messages } = Array.isArray(chat) ? toClaude(chat) : chat;
+  const { system, messages: sent } = Array.isArray(chat) ? toClaude(chat) : chat;
+  const messages = pairedMessages(sent);
   let spent = 0;
   const tools: Anthropic.Beta.BetaToolUnion[] | undefined = native ? [...toClaudeTools(native.tools), ...webTools(model)] : undefined;
   const perCall = style.timeoutMs ?? TIMEOUT_MS;
@@ -290,6 +318,8 @@ export async function askModel<T>(session: Session, model: AiModel, action: Erro
         spent += next.credits;
         Object.assign(r, { content: r.content + next.content, calls: [...r.calls, ...next.calls], turn: [...r.turn, ...next.turn], stop: next.stop });
       }
+      // Kept for the next step only with its server-side calls answered (a paused one is sent back whole above).
+      r.turn = pairedTurn(r.turn);
       if (r.stop === "refusal") {
         response = jsonError(422, REFUSED);
         break;
